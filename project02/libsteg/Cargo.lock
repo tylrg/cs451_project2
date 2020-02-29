@@ -4,10 +4,3 @@
 name = "libsteg"
 version = "0.1.0"
 
-[[package]]
-name = "multi-steg"
-version = "0.1.0"
-dependencies = [
- "libsteg 0.1.0",
-]
-
