@@ -52,14 +52,14 @@ fn main() -> Result<(), StegError> {
                 Err(err) => return Err(StegError::BadEncode(err.to_string())),
             };
 
-            eprintln!("Total bytes of message: {}",message);
+            eprintln!("Total bytes of message: {}",message.capacity());
 
 
 
-            let ppm = match libsteg::PPM::new(args[1].to_string()) {
-                Ok(ppm) => ppm,
-                Err(err) => panic!("Error: {:?}", err),
-            };
+            // let ppm = match libsteg::PPM::new(args[].to_string()) {
+            //     Ok(ppm) => ppm,
+            //     Err(err) => panic!("Error: {:?}", err),
+            // };
 
             // match encode_message(&message, &ppm) {
             //     Ok(bytes) => {
