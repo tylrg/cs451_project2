@@ -16,21 +16,27 @@ fn main() -> Result<(), StegError> {
     let args: Vec<String> = env::args().collect();
     let mut thread_count;
 
-    if(args.len()>1){
+    if(args.len()>2){
         thread_count = &args[1];
         println!("THREADS TO BE USED: {}",thread_count);
     }else{
-        eprintln!("You need to give at least two arguments!");
+        eprintln!("You need to give 2 or 4 arguments!");
         return Ok(());
     }
-    match args.len() {
-        2 => {
-            
 
-            // let ppm = match libsteg::PPM::new(args[1].to_string()) {
-            //     Ok(ppm) => ppm,
-            //     Err(err) => panic!("Error: {:?}", err),
-            // };
+
+    match args.len() {
+        3 => {
+
+            let ppm = match libsteg::PPM::new(args[2].to_string()) {
+                Ok(ppm) => ppm,
+                Err(err) => panic!("Error: {:?}", err),
+            };
+
+            eprintln!("Height: {}",ppm.header.height);
+            eprintln!("Width: {}",ppm.header.width);
+            eprintln!("Pixel Length: {}",ppm.pixels.len());
+            eprintln!("Available Pixels: {}",ppm.pixels.len()/8);
 
             // let v = &ppm.pixels;
 
@@ -39,16 +45,21 @@ fn main() -> Result<(), StegError> {
             //     Err(err) => panic!("UNKNOWN ERROR DECODING!"),
             // }
         }
-        3 => {
-            // let message = match fs::read_to_string(&args[2]) {
-            //     Ok(s) => s,
-            //     Err(err) => return Err(StegError::BadEncode(err.to_string())),
-            // };
+        5 => {
 
-            // let ppm = match libsteg::PPM::new(args[1].to_string()) {
-            //     Ok(ppm) => ppm,
-            //     Err(err) => panic!("Error: {:?}", err),
-            // };
+            let message = match fs::read_to_string(&args[2]) {
+                Ok(s) => s,
+                Err(err) => return Err(StegError::BadEncode(err.to_string())),
+            };
+
+            eprintln!("Total bytes of message: {}",message);
+
+
+
+            let ppm = match libsteg::PPM::new(args[1].to_string()) {
+                Ok(ppm) => ppm,
+                Err(err) => panic!("Error: {:?}", err),
+            };
 
             // match encode_message(&message, &ppm) {
             //     Ok(bytes) => {
@@ -99,7 +110,7 @@ fn main() -> Result<(), StegError> {
             //     },
             // }
         }
-        _ => println!("You need to give at least two arguments!"),
+        _ => println!("You need to give 2 or 4 arguments!"),
     }
     Ok(())
 }
