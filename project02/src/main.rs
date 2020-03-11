@@ -1,7 +1,9 @@
 use std::env;
 use std::fs;
+use std::fs::{self, DirEntry};
 use std::io;
 use std::io::prelude::*;
+use std::path::Path;
 //use std::str;
 
 // use this if depending on local crate
@@ -10,34 +12,35 @@ use libsteg;
 pub enum StegError {
     BadDecode(String),
     BadEncode(String),
+    BadError(String),
 }
 
 fn main() -> Result<(), StegError> {
     let args: Vec<String> = env::args().collect();
     let mut thread_count;
 
-    if(args.len()>2){
+    if args.len() > 2 {
         thread_count = &args[1];
-        println!("THREADS TO BE USED: {}",thread_count);
-    }else{
+        println!("THREADS TO BE USED: {}", thread_count);
+    } else {
         eprintln!("You need to give 2 or 4 arguments!");
         return Ok(());
     }
 
-
     match args.len() {
         3 => {
-
             let ppm = match libsteg::PPM::new(args[2].to_string()) {
                 Ok(ppm) => ppm,
                 Err(err) => panic!("Error: {:?}", err),
             };
 
-            eprintln!("Height: {}",ppm.header.height);
-            eprintln!("Width: {}",ppm.header.width);
-            eprintln!("Pixel Length: {}",ppm.pixels.len());
-            eprintln!("Available Pixels: {}",ppm.pixels.len()/8);
+            eprintln!("Height: {}", ppm.header.height);
+            eprintln!("Width: {}", ppm.header.width);
+            eprintln!("Pixel Length: {}", ppm.pixels.len());
+            eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
 
+            
+            
             // let v = &ppm.pixels;
 
             // match decode_message(v) {
@@ -46,15 +49,12 @@ fn main() -> Result<(), StegError> {
             // }
         }
         5 => {
-
             let message = match fs::read_to_string(&args[2]) {
                 Ok(s) => s,
                 Err(err) => return Err(StegError::BadEncode(err.to_string())),
             };
 
-            eprintln!("Total bytes of message: {}",message.capacity());
-
-
+            eprintln!("Total bytes of message: {}", message.capacity());
 
             // let ppm = match libsteg::PPM::new(args[].to_string()) {
             //     Ok(ppm) => ppm,
@@ -115,6 +115,7 @@ fn main() -> Result<(), StegError> {
     Ok(())
 }
 
+/*
 
 
 
@@ -148,6 +149,15 @@ fn main() -> Result<(), StegError> {
 
 
 
+
+
+
+
+
+
+
+
+*/
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
 
