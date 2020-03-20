@@ -50,22 +50,18 @@ fn main() -> Result<(), StegError> {
 
                 
                 //let path_value = entry.path();
-                if path_value.extension().unwrap()=="ppm"{
-                    println!("Entry: {:?}",path_value);
-                    let str_value:&str = path_value.to_str().unwrap();
-                    println!("String value: {:?}",str_value);
-                    file_list.push(str_value);
-                    //println!("Extension: {:?}",path.extension().unwrap());
-                    //add to vector here?
+                let path = entry.path();
+                if path.extension().unwrap()=="ppm"{
+                    file_list.push(path);
                 }
                 // println!("Entry: {:?}",path_value);
                 // let str_value:&str = path_value.to_str().unwrap();
                 // println!("String value: {:?}",str_value);
-                let path = entry.path();
+                
                 //let str_value = path_value.to_str();
                 //let unwrapper = str_value.unwrap();
                 //println!("Path String: {:?}",unwrapper);
-                file_list.push(path);
+                
             }
             for value in file_list{
                 println!("Value: {:?}",value);
