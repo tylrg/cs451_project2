@@ -1,10 +1,10 @@
 use std::env;
 use std::fs;
-use std::fs::{self, DirEntry};
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-//use std::str;
+use std::path::PathBuf;
+use std::str;
 
 // use this if depending on local crate
 use libsteg;
@@ -17,7 +17,7 @@ pub enum StegError {
 
 fn main() -> Result<(), StegError> {
     let args: Vec<String> = env::args().collect();
-    let mut thread_count;
+    let thread_count;
 
     if args.len() > 2 {
         thread_count = &args[1];
@@ -29,20 +29,58 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         3 => {
-            let ppm = match libsteg::PPM::new(args[2].to_string()) {
-                Ok(ppm) => ppm,
-                Err(err) => panic!("Error: {:?}", err),
-            };
-
-            eprintln!("Height: {}", ppm.header.height);
-            eprintln!("Width: {}", ppm.header.width);
-            eprintln!("Pixel Length: {}", ppm.pixels.len());
-            eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
-
             
-            
+            let mut num_files = 0;
+
+            //let mut file_list: Vec<str> = Vec::new();
+            let path_string = args[2].to_string();
+            let path = Path::new(&path_string);
+            print!("Input Path: {:?}",path);
+            let current_dir = env::current_dir()
+                .expect("Fuck");
+            println!("Entries modified in the last 24 hours in {:?}:",current_dir);
+
+            //is dir
+            for _entry in fs::read_dir(path).expect("Path not found!"){num_files=num_files+1;}
+            println!("Number of files: {}",num_files);
+            let mut file_list: Vec<PathBuf> = Vec::new();
+            for entry in fs::read_dir(path).expect("Path not found!"){
+                let entry = entry.expect("Why do I even need this?");
+                
+
+                
+                //let path_value = entry.path();
+                if path_value.extension().unwrap()=="ppm"{
+                    println!("Entry: {:?}",path_value);
+                    let str_value:&str = path_value.to_str().unwrap();
+                    println!("String value: {:?}",str_value);
+                    file_list.push(str_value);
+                    //println!("Extension: {:?}",path.extension().unwrap());
+                    //add to vector here?
+                }
+                // println!("Entry: {:?}",path_value);
+                // let str_value:&str = path_value.to_str().unwrap();
+                // println!("String value: {:?}",str_value);
+                let path = entry.path();
+                //let str_value = path_value.to_str();
+                //let unwrapper = str_value.unwrap();
+                //println!("Path String: {:?}",unwrapper);
+                file_list.push(path);
+            }
+            for value in file_list{
+                println!("Value: {:?}",value);
+            }
+
+
+            // let ppm = match libsteg::PPM::new(args[2].to_string()) {
+            //     Ok(ppm) => ppm,
+            //     Err(err) => panic!("Error: {:?}", err),
+            // };
+            // eprintln!("Height: {}", ppm.header.height);
+            // eprintln!("Width: {}", ppm.header.width);
+            // eprintln!("Pixel Length: {}", ppm.pixels.len());
+            // eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
             // let v = &ppm.pixels;
-
             // match decode_message(v) {
             //     Ok(message) => println!("{}", message),
             //     Err(err) => panic!("UNKNOWN ERROR DECODING!"),
