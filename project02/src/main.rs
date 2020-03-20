@@ -54,14 +54,6 @@ fn main() -> Result<(), StegError> {
                 if path.extension().unwrap()=="ppm"{
                     file_list.push(path);
                 }
-                // println!("Entry: {:?}",path_value);
-                // let str_value:&str = path_value.to_str().unwrap();
-                // println!("String value: {:?}",str_value);
-                
-                //let str_value = path_value.to_str();
-                //let unwrapper = str_value.unwrap();
-                //println!("Path String: {:?}",unwrapper);
-                
             }
             for value in file_list{
                 println!("Value: {:?}",value);
