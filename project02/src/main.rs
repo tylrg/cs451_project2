@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str;
+use std::thread;
 
 // use this if depending on local crate
 use libsteg;
@@ -29,36 +30,61 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         3 => {
-            
             let mut num_files = 0;
 
             //let mut file_list: Vec<str> = Vec::new();
             let path_string = args[2].to_string();
             let path = Path::new(&path_string);
-            print!("Input Path: {:?}",path);
-            let current_dir = env::current_dir()
-                .expect("Fuck");
-            println!("Entries modified in the last 24 hours in {:?}:",current_dir);
+            print!("Input Path: {:?}", path);
+            let current_dir = env::current_dir().expect("Fuck");
+            println!(
+                "Entries modified in the last 24 hours in {:?}:",
+                current_dir
+            );
 
             //is dir
-            for _entry in fs::read_dir(path).expect("Path not found!"){num_files=num_files+1;}
-            println!("Number of files: {}",num_files);
+            for _entry in fs::read_dir(path).expect("Path not found!") {
+                num_files = num_files + 1;
+            }
+            println!("Number of files: {}", num_files);
             let mut file_list: Vec<PathBuf> = Vec::new();
-            for entry in fs::read_dir(path).expect("Path not found!"){
+            let mut str_parts = vec![" "; 0];
+            for entry in fs::read_dir(path).expect("Path not found!") {
                 let entry = entry.expect("Why do I even need this?");
-                
 
-                
                 //let path_value = entry.path();
                 let path = entry.path();
-                if path.extension().unwrap()=="ppm"{
+                if path.extension().unwrap() == "ppm" {
                     file_list.push(path);
+                    str_parts.push(" ");
                 }
             }
-            for value in file_list{
-                println!("Value: {:?}",value);
+            // let mut str_parts: Vec<str> = Vec::new();
+            for value in file_list {
+                println!("Value: {:?}", value);
+                //str_parts.push(" ");
+            }
+            println!("Length of str_parts: {}", str_parts.len());
+
+            let mut children = vec![];
+            let mut counter = 0;
+            for i in 0..thread_count.parse::<i32>().unwrap() {
+                // Spin up another thread
+                children.push(thread::spawn(move || {
+                    println!("this is thread number {}", i+1);
+                    while (counter < num_files){
+                    println!("Counter incremented");
+                    counter = counter+1;
+            }
+                }));
             }
 
+            
+
+            for child in children {
+                // Wait for the thread to finish. Returns a result.
+                let _ = child.join();
+            }
 
             // let ppm = match libsteg::PPM::new(args[2].to_string()) {
             //     Ok(ppm) => ppm,
