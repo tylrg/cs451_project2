@@ -4,7 +4,10 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::str;
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 // use this if depending on local crate
@@ -30,6 +33,7 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         3 => {
+            //let (tx, rx) = mpsc::channel();
             let mut num_files = 0;
 
             //let mut file_list: Vec<str> = Vec::new();
@@ -60,31 +64,30 @@ fn main() -> Result<(), StegError> {
                 }
             }
             // let mut str_parts: Vec<str> = Vec::new();
-            for value in file_list {
+            for value in &file_list {
                 println!("Value: {:?}", value);
                 //str_parts.push(" ");
             }
             println!("Length of str_parts: {}", str_parts.len());
 
-            let mut children = vec![];
-            let mut counter = 0;
-            for i in 0..thread_count.parse::<i32>().unwrap() {
-                // Spin up another thread
-                children.push(thread::spawn(move || {
-                    println!("this is thread number {}", i+1);
-                    while (counter < num_files){
-                    println!("Counter incremented");
-                    counter = counter+1;
-            }
-                }));
-            }
 
-            
-
-            for child in children {
-                // Wait for the thread to finish. Returns a result.
-                let _ = child.join();
-            }
+            // let counter = Arc::new(Mutex::new(0));
+            // let mut handles = vec![];
+            // let mut mutex_file_list = Arc::new(Mutex::new(file_list));
+            // for _ in 0..thread_count.parse::<i32>().unwrap() {
+            //     let counter = Arc::clone(&counter);
+            //     let handle = thread::spawn(move || {
+            //         let mut num = counter.lock().unwrap();
+            //         println!("List at {:?}",file_list[0]);
+            //         *num += 1;
+            //         println!("Counter: {}",num);
+            //     });
+            //     handles.push(handle);
+            // }
+            // for handle in handles {
+            //     handle.join().unwrap();
+            // }
+            // println!("Result: {}", *counter.lock().unwrap())
 
             // let ppm = match libsteg::PPM::new(args[2].to_string()) {
             //     Ok(ppm) => ppm,
