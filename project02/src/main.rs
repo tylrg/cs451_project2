@@ -21,17 +21,44 @@ pub enum StegError {
 
 fn main() -> Result<(), StegError> {
     let args: Vec<String> = env::args().collect();
-    let thread_count;
+    let mut thread_count;
 
     if args.len() > 2 {
         thread_count = &args[1];
         println!("THREADS TO BE USED: {}", thread_count);
     } else {
         eprintln!("You need to give 2 or 4 arguments!");
-        return Ok(());
+        //return Ok(());
     }
 
     match args.len() {
+        2 => {
+            thread_count = &args[1];
+            let (sender, receiver ) = mpsc::channel();
+            let mut handles = vec![];
+            let mut values = vec![];
+            let mut workload = Arc::new(vec![1, 2, 3]);
+
+            for i in 0..thread_count.parse::<i32>().unwrap(){
+                let tx = sender.clone();
+                let handle = thread::spawn(move||{
+                    let x = thread::current().id();
+                    let y =2000*4;
+                    tx.send((x,y));
+                    });
+                handles.push(handle);
+            }
+            
+            for handle in handles{
+                values.push(receiver.recv().unwrap());
+            }
+
+            for value in values{
+                println!("Value: {:?}",value)
+            }
+            
+            
+        }
         3 => {
             //let (tx, rx) = mpsc::channel();
             let mut num_files = 0;
@@ -54,7 +81,8 @@ fn main() -> Result<(), StegError> {
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut str_parts = vec![" "; 0];
             for entry in fs::read_dir(path).expect("Path not found!") {
-                let entry = entry.expect("Why do I even need this?");
+                let entry = entry
+                    .expect("Why do I even need this?");
 
                 //let path_value = entry.path();
                 let path = entry.path();
@@ -170,7 +198,23 @@ fn main() -> Result<(), StegError> {
     Ok(())
 }
 
-/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pub struct DecodeFragment{
+    
+}
 
 
 
@@ -197,22 +241,6 @@ fn main() -> Result<(), StegError> {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
 
