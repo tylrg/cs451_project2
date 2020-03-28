@@ -1,10 +1,10 @@
 use std::env;
 use std::fs;
-use std::io;
-use std::io::prelude::*;
+//use std::io;
+//use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
-use std::rc::Rc;
+//use std::rc::Rc;
 use std::str;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -37,17 +37,20 @@ fn main() -> Result<(), StegError> {
             let (sender, receiver ) = mpsc::channel();
             let mut handles = vec![];
             let mut values = vec![];
+            let data = Arc::new(Mutex::new(vec![1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10]));
             //let mut workload = Arc::new(vec![1, 2, 3]);
-            let counter = Mutex::new(0);
 
-            for i in 0..thread_count.parse::<i32>().unwrap(){
+            for i:usize in 0..thread_count.parse::<i32>().unwrap(){
                 let tx = sender.clone();
+                let data2 = data.clone();
                 let handle = thread::spawn(move||{
                     let x = thread::current().id();
-                    let mut num = counter.lock().unwrap();
+                    let mut data = data2.lock().unwrap();
+                    //data[i]+=1;
+                    //let mut num = val.lock().unwrap();
                     //let y =2000*4;
-                    tx.send((x,));
-                    *num+=1;;
+                    tx.send((x,data[i]));
+                    //*num+=1;
                     });
                 handles.push(handle);
             }
