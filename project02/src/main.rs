@@ -37,25 +37,23 @@ fn main() -> Result<(), StegError> {
             let (sender, receiver ) = mpsc::channel();
             let mut handles = vec![];
             let mut values = vec![];
-            let mut workload = Arc::new(vec![1, 2, 3]);
+            //let mut workload = Arc::new(vec![1, 2, 3]);
+            let counter = Mutex::new(0);
 
             for i in 0..thread_count.parse::<i32>().unwrap(){
                 let tx = sender.clone();
                 let handle = thread::spawn(move||{
                     let x = thread::current().id();
-                    let y =2000*4;
-                    tx.send((x,y));
+                    let mut num = counter.lock().unwrap();
+                    //let y =2000*4;
+                    tx.send((x,));
+                    *num+=1;;
                     });
                 handles.push(handle);
             }
             
-            for handle in handles{
-                values.push(receiver.recv().unwrap());
-            }
-
-            for value in values{
-                println!("Value: {:?}",value)
-            }
+            for handle in handles{values.push(receiver.recv().unwrap());}
+            for value in values{println!("Value: {:?}",value)}
             
             
         }
@@ -213,7 +211,7 @@ fn main() -> Result<(), StegError> {
 
 
 pub struct DecodeFragment{
-    
+
 }
 
 
