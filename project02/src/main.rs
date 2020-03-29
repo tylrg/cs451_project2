@@ -9,6 +9,7 @@ use std::str;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 // use this if depending on local crate
 use libsteg;
@@ -33,32 +34,45 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         2 => {
-            thread_count = &args[1];
-            let (sender, receiver ) = mpsc::channel();
-            let mut handles = vec![];
-            let mut values = vec![];
-            let data = Arc::new(Mutex::new(vec![1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10]));
-            //let mut workload = Arc::new(vec![1, 2, 3]);
+            // thread_count = &args[1];
+            // let (sender, receiver ) = mpsc::channel();
+            // let mut handles = vec![];
+            // let mut values = vec![];
+            // let data = Arc::new(Mutex::new(vec![1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10,1, 2, 3,4,5,6,7,8,9,10]));
+            // //let mut workload = Arc::new(vec![1, 2, 3]);
 
-            for i:usize in 0..thread_count.parse::<i32>().unwrap(){
-                let tx = sender.clone();
-                let data2 = data.clone();
-                let handle = thread::spawn(move||{
-                    let x = thread::current().id();
-                    let mut data = data2.lock().unwrap();
-                    //data[i]+=1;
-                    //let mut num = val.lock().unwrap();
-                    //let y =2000*4;
-                    tx.send((x,data[i]));
-                    //*num+=1;
-                    });
-                handles.push(handle);
+            // let mut index = Arc::new(Mutex::new(0 as usize));
+            // for i in 0..thread_count.parse::<i32>().unwrap(){
+            //     let tx = sender.clone();
+            //     let data2 = data.clone();
+            //     let id = index.clone();
+            //     let handle = thread::spawn(move||{
+            //         let x = thread::current().id();
+            //         let mut data = data2.lock().unwrap();
+            //         let index2:usize = index.lock().unwrap();
+            //         //data[i]+=1;
+            //         //let mut num = val.lock().unwrap();
+            //         //let y =2000*4;
+            //         tx.send((x,data[index2]));
+            //         *index2+=1;
+            //         });
+            //     handles.push(handle);
+            // }
+
+            // for handle in handles{values.push(receiver.recv().unwrap());}
+            // for value in values{println!("Value: {:?}",value)}
+
+            let data = Arc::new(Mutex::new(vec![1, 2, 3]));
+            for i in 0..3 {
+                let data = data.clone();
+                thread::spawn(move || {
+                    let mut data = data.lock().unwrap();
+                    data[i] += 1;
+                });
             }
-            
-            for handle in handles{values.push(receiver.recv().unwrap());}
-            for value in values{println!("Value: {:?}",value)}
-            
-            
+
+            thread::sleep(Duration::from_millis(50));
+            println!("Data: {:?}",data);
         }
         3 => {
             //let (tx, rx) = mpsc::channel();
@@ -82,8 +96,7 @@ fn main() -> Result<(), StegError> {
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut str_parts = vec![" "; 0];
             for entry in fs::read_dir(path).expect("Path not found!") {
-                let entry = entry
-                    .expect("Why do I even need this?");
+                let entry = entry.expect("Why do I even need this?");
 
                 //let path_value = entry.path();
                 let path = entry.path();
@@ -98,7 +111,6 @@ fn main() -> Result<(), StegError> {
                 //str_parts.push(" ");
             }
             println!("Length of str_parts: {}", str_parts.len());
-
 
             // let counter = Arc::new(Mutex::new(0));
             // let mut handles = vec![];
@@ -199,48 +211,7 @@ fn main() -> Result<(), StegError> {
     Ok(())
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pub struct DecodeFragment{
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+pub struct DecodeFragment {}
 
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
