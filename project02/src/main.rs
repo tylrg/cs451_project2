@@ -34,7 +34,7 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         2 => {
-            // thread_count = &args[1];
+             thread_count = &args[1];
             // let (sender, receiver ) = mpsc::channel();
             // let mut handles = vec![];
             // let mut values = vec![];
@@ -60,19 +60,46 @@ fn main() -> Result<(), StegError> {
             // }
 
             // for handle in handles{values.push(receiver.recv().unwrap());}
-            // for value in values{println!("Value: {:?}",value)}
+            // println!("Values: {:?}",values)}
+            let mut handles = vec![];
+            let (sender, receiver ) = mpsc::channel();
+            let mut values = vec![];
+            let mut returns = vec![];
 
-            let data = Arc::new(Mutex::new(vec![1, 2, 3]));
-            for i in 0..3 {
-                let data = data.clone();
-                thread::spawn(move || {
-                    let mut data = data.lock().unwrap();
-                    data[i] += 1;
-                });
+            //directory size up
+            for i in 1..32{
+                let none_val:usize = 0usize;
+                values.push((none_val,String::from("File at: ")+&i.to_string()));
             }
+            println!("Values: {:?}",values);
 
-            thread::sleep(Duration::from_millis(50));
-            println!("Data: {:?}",data);
+            let data = Arc::new(Mutex::new(values));
+            //if thread_count >= values.len(){thread_count=values.len()}
+            for i in 1..thread_count.parse::<usize>().unwrap()+1 {
+                let data = data.clone();
+                let tx = sender.clone();
+                let handle = thread::spawn(move || {
+                    let mut data = data.lock().unwrap();
+                    if i < data.len(){
+                        if data[i].0 == 0{
+                            //println!("Not consumed: {:?}",i);
+                            //println!("Value at {}: {:?}",i,data[i]);
+                            //thread::sleep(Duration::from_millis(50));
+                            data[i].0 = i;
+                            //println!("Updated Value at {}: {:?}\n",i,data[i]);
+                            tx.send((data[i].0,data[i].1.clone()));
+                            thread::sleep(Duration::from_millis(50));
+                        }
+                    }
+
+                    
+                });
+                handles.push(handle);
+            }
+            println!("Length of Handles(Number of threads): {}",handles.len());
+
+            for handle in handles{returns.push(receiver.recv().unwrap());}
+            for ret_val in returns{println!("Returned Value: {:?}",ret_val)};
         }
         3 => {
             //let (tx, rx) = mpsc::channel();
