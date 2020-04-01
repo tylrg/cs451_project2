@@ -37,85 +37,65 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         2 => {
+            // thread_count = &args[1];
+            // let mut thread_count = thread_count.parse::<usize>().unwrap();
+            // let mut handles = vec![];
+            // let (sender, receiver ) = mpsc::channel();
+            // let mut values = vec![];
+            // let mut returns = vec![];
+            // let mut counter = 0;
+
+            // //directory size up
+            // for i in 0..30{
+            //     let none_val:usize = MAX;
+            //     values.push((none_val,String::from("File Number ")+&i.to_string()+" Decoded"));
+            //     counter+=1;
+            // }
+            // println!("Counter: {}",counter);
+            // println!("Values: {:?}",values);
+
+            // let data = Arc::new(Mutex::new(values));
+            // if thread_count >= counter {thread_count=counter;}
+            // for i in 0..thread_count {
+            //     let data = data.clone();
+            //     let tx = sender.clone();
+            //     let handle = thread::spawn(move || {
+            //         let mut data = data.lock().unwrap();
+            //         let x = thread::current().id();
+            //         let mut done_flag:bool = false;
+            //         let send_data = data.clone();
+            //          let modify_value = find_first(send_data);
+            //             println!("----------------------\n{:?}",x);
+            //             println!("Found an empty spot: {:?}",data[modify_value]);
+            //             data[modify_value].0 = modify_value;
+            //             println!("Modified value: {:?}",data[modify_value]);
+            //             let path_to_decode = data[modify_value].1.clone();
+            //             println!("DECODING PATH: {}\n-------------------------\n",path_to_decode);
+            //             tx.send((modify_value,"Thread Finished!"));//decode return
+            //     });
+            //     println!("Added thread {}",i);
+            //     handles.push(handle);
+            // }
+            // println!("Length of Handles(Number of threads): {}",handles.len());
+
+            // for handle in 0..counter{
+            //     returns.push(receiver.recv().unwrap());
+            // }
+            // for ret_val in returns{println!("Returned Value: {:?}",ret_val)};
+        }
+        3 => {
             thread_count = &args[1];
             let mut thread_count = thread_count.parse::<usize>().unwrap();
             let mut handles = vec![];
-            let (sender, receiver ) = mpsc::channel();
-            let mut values = vec![];
+            let (sender, receiver) = mpsc::channel();
             let mut returns = vec![];
-            let mut counter = 0;
-
-            //directory size up
-            for i in 0..30{
-                let none_val:usize = MAX;
-                values.push((none_val,String::from("File Number ")+&i.to_string()+" Decoded"));
-                counter+=1;
-            }
-            println!("Counter: {}",counter);
-            println!("Values: {:?}",values);
-
-            let data = Arc::new(Mutex::new(values));
-            if thread_count >= counter {thread_count=counter;}
-            for i in 0..thread_count {
-                let data = data.clone();
-                let tx = sender.clone();
-                
-                let handle = thread::spawn(move || {
-                    //thread::sleep(Duration::from_millis(10000));
-                    let mut data = data.lock().unwrap();
-                    
-                    let x = thread::current().id();
-                    let mut done_flag:bool = false;
-                    let send_data = data.clone();
-
-                     let modify_value = find_first(send_data);
-
-                    
-                        println!("----------------------\n{:?}",x);
-                    
-                        println!("Found an empty spot: {:?}",data[modify_value]);
-                        data[modify_value].0 = modify_value;
-                        println!("Modified value: {:?}",data[modify_value]);
-
-                        let path_to_decode = data[modify_value].1.clone();
-                        println!("DECODING PATH: {}\n-------------------------\n",path_to_decode);
-
-                        tx.send((modify_value,"Thread Finished!"));//decode return
-                    
-
-
-
-                    
-    
-
-                    
-                    
-                    
-                });
-                println!("Added thread {}",i);
-                handles.push(handle);
-            }
-            println!("Length of Handles(Number of threads): {}",handles.len());
-
-
-            for handle in 0..counter{
-                returns.push(receiver.recv().unwrap());
-            }
-            for ret_val in returns{println!("Returned Value: {:?}",ret_val)};
-        }
-        3 => {
-            //let (tx, rx) = mpsc::channel();
             let mut num_files = 0;
 
-            //let mut file_list: Vec<str> = Vec::new();
             let path_string = args[2].to_string();
             let path = Path::new(&path_string);
-            print!("Input Path: {:?}", path);
+            println!("Input Path: {:?}", path);
             let current_dir = env::current_dir().expect("Fuck");
-            println!(
-                "Entries modified in the last 24 hours in {:?}:",
-                current_dir
-            );
+            println!("Current Directory: {:?}:",current_dir);
 
             //is dir
             for _entry in fs::read_dir(path).expect("Path not found!") {
@@ -124,23 +104,58 @@ fn main() -> Result<(), StegError> {
             println!("Number of files: {}", num_files);
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut str_parts = vec![" "; 0];
+            let mut num_files = 0;
             for entry in fs::read_dir(path).expect("Path not found!") {
-                let entry = entry.expect("Why do I even need this?");
+                let entry = entry.expect("Valid entry not found!");
 
                 //let path_value = entry.path();
                 let path = entry.path();
                 if path.extension().unwrap() == "ppm" {
                     file_list.push(path);
                     str_parts.push(" ");
+                    num_files+=1;
                 }
             }
-            // let mut str_parts: Vec<str> = Vec::new();
             for value in &file_list {
                 println!("Value: {:?}", value);
                 //str_parts.push(" ");
             }
             println!("Length of str_parts: {}", str_parts.len());
 
+            let index = Arc::new(Mutex::new(0));
+            let data = Arc::new(Mutex::new(str_parts));
+            if thread_count >= num_files {
+                thread_count = num_files;
+            }
+            for i in 0..thread_count {
+                let data = data.clone();
+                let tx = sender.clone();
+                let index_copied = index.clone();
+
+                let handle = thread::spawn(move || {
+                    //thread::sleep(Duration::from_millis(10000));
+                    let data_unlocked = data.lock().unwrap();
+                    let mut index_unlocked = index_copied.lock().unwrap();
+                    println!("Index {:?}",*index_unlocked);
+                    println!("Value at index: {:?}",data_unlocked[*index_unlocked]);
+                    let x = thread::current().id();
+                    //let mut file_name = *data[*index_unlocked];
+
+                    
+                    tx.send((x,*index_unlocked)); //decode return
+                    *index_unlocked+=1;
+                });
+                //println!("Added thread {}", i+1);
+                handles.push(handle);
+            }
+
+            //println!("Length of Handles(Number of threads): {}", handles.len());
+            for handle in 0..num_files {
+                returns.push(receiver.recv().unwrap());
+            }
+            for ret_val in returns {
+                println!("Returned Value:(thread,index) {:?}", ret_val)
+            }
 
             // let ppm = match libsteg::PPM::new(args[2].to_string()) {
             //     Ok(ppm) => ppm,
@@ -223,13 +238,15 @@ fn main() -> Result<(), StegError> {
     Ok(())
 }
 
-fn find_first(vector_value: Vec<(usize,String)>)->usize{
-    let mut counter:usize = 0;
-    while counter < vector_value.len(){
-        if vector_value[counter].0 == MAX{
-            println!("Index: {}",counter);
+fn find_first(vector_value: Vec<(usize, String)>) -> usize {
+    let mut counter: usize = 0;
+    while counter < vector_value.len() {
+        if vector_value[counter].0 == MAX {
+            println!("Index: {}", counter);
             return counter;
-        }else{counter+=1;}
+        } else {
+            counter += 1;
+        }
     }
     return MAX;
 }
