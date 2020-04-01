@@ -29,7 +29,7 @@ fn main() -> Result<(), StegError> {
 
     if args.len() > 2 {
         thread_count = &args[1];
-        println!("THREADS TO BE USED: {}", thread_count);
+        //println!("THREADS TO BE USED: {}", thread_count);
     } else {
         eprintln!("You need to give 2 or 4 arguments!");
         //return Ok(());
@@ -95,20 +95,19 @@ fn main() -> Result<(), StegError> {
             let path = Path::new(&path_string);
             println!("Input Path: {:?}", path);
             let current_dir = env::current_dir().expect("Fuck");
-            println!("Current Directory: {:?}:",current_dir);
+            //println!("Current Directory: {:?}:",current_dir);
 
             //is dir
             for _entry in fs::read_dir(path).expect("Path not found!") {
                 num_files = num_files + 1;
             }
-            println!("Number of files: {}", num_files);
+            //println!("Number of files: {}", num_files);
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut str_parts = vec![" "; 0];
             let mut num_files = 0;
             for entry in fs::read_dir(path).expect("Path not found!") {
                 let entry = entry.expect("Valid entry not found!");
 
-                //let path_value = entry.path();
                 let path = entry.path();
                 if path.extension().unwrap() == "ppm" {
                     file_list.push(path);
@@ -117,31 +116,37 @@ fn main() -> Result<(), StegError> {
                 }
             }
             for value in &file_list {
-                println!("Value: {:?}", value);
-                //str_parts.push(" ");
+                println!("PPM File: {:?}", value);
             }
             println!("Length of str_parts: {}", str_parts.len());
 
             let index = Arc::new(Mutex::new(0));
-            let data = Arc::new(Mutex::new(str_parts));
+            let data = Arc::new(Mutex::new(file_list));
             if thread_count >= num_files {
                 thread_count = num_files;
             }
             for i in 0..thread_count {
-                let data = data.clone();
+                //let data = data.clone();
                 let tx = sender.clone();
                 let index_copied = index.clone();
+                let str_test = data.clone();
 
                 let handle = thread::spawn(move || {
                     //thread::sleep(Duration::from_millis(10000));
-                    let data_unlocked = data.lock().unwrap();
+                    //let data_unlocked = data.lock().unwrap();
+                    let str_list = str_test.lock().unwrap();
                     let mut index_unlocked = index_copied.lock().unwrap();
-                    println!("Index {:?}",*index_unlocked);
-                    println!("Value at index: {:?}",data_unlocked[*index_unlocked]);
-                    let x = thread::current().id();
-                    //let mut file_name = *data[*index_unlocked];
+                    let index_value:usize = *index_unlocked;
 
+                    println!("Index {:?}",index_value);
+                    println!("Length {}", str_list.len());
+                    println!("Value at index: {:?}",str_list[*index_unlocked]);
                     
+                    // for value in *str_list{
+                    //     println!("Value : {:?}",value);
+                    // }
+
+                    let x = thread::current().id();
                     tx.send((x,*index_unlocked)); //decode return
                     *index_unlocked+=1;
                 });
