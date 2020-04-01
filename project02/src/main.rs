@@ -132,22 +132,38 @@ fn main() -> Result<(), StegError> {
                 let str_test = data.clone();
 
                 let handle = thread::spawn(move || {
-                    //thread::sleep(Duration::from_millis(10000));
-                    //let data_unlocked = data.lock().unwrap();
                     let str_list = str_test.lock().unwrap();
                     let mut index_unlocked = index_copied.lock().unwrap();
                     let index_value:usize = *index_unlocked;
 
                     println!("Index {:?}",index_value);
-                    println!("Length {}", str_list.len());
                     println!("Value at index: {:?}",str_list[*index_unlocked]);
+
+                    let file_path = str_list[*index_unlocked].clone().
+                    into_os_string();
+                    let file_path= file_path.into_string().unwrap();
+                    println!("File path as os String: {:?}",file_path);
                     
-                    // for value in *str_list{
-                    //     println!("Value : {:?}",value);
-                    // }
+                    //create a file here and decode it
+                    let ppm = match libsteg::PPM::new(file_path) {
+                    Ok(ppm) => ppm,
+                    Err(err) => panic!("Error: {:?}", err),
+                    };
+                    eprintln!("Height: {}", ppm.header.height);
+                    eprintln!("Width: {}", ppm.header.width);
+                    eprintln!("Pixel Length: {}", ppm.pixels.len());
+                    eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
+                    let v = &ppm.pixels;
+
+                    //decode
+                    match decode_message(v) {
+                        Ok(message) => println!("{}", message),
+                        Err(err) => panic!("UNKNOWN ERROR DECODING!"),
+                    }
 
                     let x = thread::current().id();
-                    tx.send((x,*index_unlocked)); //decode return
+                    tx.send((x,str_list[*index_unlocked].clone()))
+                        .expect("Error sending message!"); //decode return
                     *index_unlocked+=1;
                 });
                 //println!("Added thread {}", i+1);
@@ -162,19 +178,7 @@ fn main() -> Result<(), StegError> {
                 println!("Returned Value:(thread,index) {:?}", ret_val)
             }
 
-            // let ppm = match libsteg::PPM::new(args[2].to_string()) {
-            //     Ok(ppm) => ppm,
-            //     Err(err) => panic!("Error: {:?}", err),
-            // };
-            // eprintln!("Height: {}", ppm.header.height);
-            // eprintln!("Width: {}", ppm.header.width);
-            // eprintln!("Pixel Length: {}", ppm.pixels.len());
-            // eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
-            // let v = &ppm.pixels;
-            // match decode_message(v) {
-            //     Ok(message) => println!("{}", message),
-            //     Err(err) => panic!("UNKNOWN ERROR DECODING!"),
-            // }
+            
         }
         5 => {
             let message = match fs::read_to_string(&args[2]) {
