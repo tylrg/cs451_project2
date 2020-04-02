@@ -27,12 +27,10 @@ fn main() -> Result<(), StegError> {
     let args: Vec<String> = env::args().collect();
     let mut thread_count;
 
-    if args.len() > 2 {
-        thread_count = &args[1];
-        //println!("THREADS TO BE USED: {}", thread_count);
-    } else {
+    if args.len() > 2 {thread_count = &args[1];} 
+    else {
         eprintln!("You need to give 2 or 4 arguments!");
-        //return Ok(());
+        return Ok(());
     }
 
     match args.len() {
@@ -84,25 +82,31 @@ fn main() -> Result<(), StegError> {
             // for ret_val in returns{println!("Returned Value: {:?}",ret_val)};
         }
         3 => {
+
+            //thread count from argument and parsing
             thread_count = &args[1];
             let mut thread_count = thread_count.parse::<usize>().unwrap();
-            let mut handles = vec![];
-            let (sender, receiver) = mpsc::channel();
-            let mut returns = vec![];
-            let mut num_files = 0;
 
+            //path from second argument 
             let path_string = args[2].to_string();
             let path = Path::new(&path_string);
-            println!("Input Path: {:?}", path);
-            let current_dir = env::current_dir().expect("Fuck");
-            //println!("Current Directory: {:?}:",current_dir);
+            //println!("Input Path: {:?}", path);
+            let current_dir = env::current_dir().expect("Current directory not found!");
 
-            //is dir
-            for _entry in fs::read_dir(path).expect("Path not found!") {
-                num_files = num_files + 1;
-            }
-            //println!("Number of files: {}", num_files);
+
+            //vector for storing threads and return values from channel, also mpsc channels
+            let mut handles = vec![];
+            let mut returns = vec![];
+            let (sender, receiver) = mpsc::channel();
+
+            //number of files
+            let mut num_files = 0;
+            //increment for each file in directory
+            for _entry in fs::read_dir(path).expect("Path not found!") {num_files = num_files + 1;}
+
+            //
             let mut file_list: Vec<PathBuf> = Vec::new();
+            let mut f_l = &file_list.clone();
             let mut str_parts = vec![" "; 0];
             let mut num_files = 0;
             for entry in fs::read_dir(path).expect("Path not found!") {
@@ -115,9 +119,7 @@ fn main() -> Result<(), StegError> {
                     num_files+=1;
                 }
             }
-            for value in &file_list {
-                println!("PPM File: {:?}", value);
-            }
+            for value in &file_list {println!("PPM File: {:?}", value);}
             println!("Length of str_parts: {}", str_parts.len());
 
             let index = Arc::new(Mutex::new(0));
@@ -142,6 +144,7 @@ fn main() -> Result<(), StegError> {
                     let file_path = str_list[*index_unlocked].clone().
                     into_os_string();
                     let file_path= file_path.into_string().unwrap();
+                    let send_path = file_path.clone();
                     println!("File path as os String: {:?}",file_path);
                     
                     //create a file here and decode it
@@ -149,10 +152,10 @@ fn main() -> Result<(), StegError> {
                     Ok(ppm) => ppm,
                     Err(err) => panic!("Error: {:?}", err),
                     };
-                    eprintln!("Height: {}", ppm.header.height);
-                    eprintln!("Width: {}", ppm.header.width);
-                    eprintln!("Pixel Length: {}", ppm.pixels.len());
-                    eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
+                    //eprintln!("Height: {}", ppm.header.height);
+                    //eprintln!("Width: {}", ppm.header.width);
+                    //eprintln!("Pixel Length: {}", ppm.pixels.len());
+                    //eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
                     let v = &ppm.pixels;
 
                     //decode
@@ -162,7 +165,7 @@ fn main() -> Result<(), StegError> {
                     }
 
                     let x = thread::current().id();
-                    tx.send((x,str_list[*index_unlocked].clone()))
+                    tx.send((x,send_path))
                         .expect("Error sending message!"); //decode return
                     *index_unlocked+=1;
                 });
@@ -174,9 +177,44 @@ fn main() -> Result<(), StegError> {
             for handle in 0..num_files {
                 returns.push(receiver.recv().unwrap());
             }
+
+            
+            //f_l = file_list.clone();
+            
             for ret_val in returns {
+                for f_name in f_l{
+                    let f_name = f_name.clone().into_os_string();
+                    let f_name = f_name.into_string().unwrap();
+                    let r_val_str = &ret_val.1;
+
+                    println!("Fname: {}",f_name);
+                    if ret_val.1 == *f_name{
+                        //println!("Retval: {:?} File Name: {:?}",r_val_str,*f_name);
+                        println!("Found a match")
+                    }
+                    
+                }
                 println!("Returned Value:(thread,index) {:?}", ret_val)
             }
+
+            // for ret_val in &returns{
+            //     println!("Retval at 1: {:?}",ret_val.1);
+            // }
+
+            // //let mut final_vec = vec![];
+            // let f_list = &file_list;
+            // let r_list = &returns;
+            // for file_name in f_list{
+            //     let f_name = file_name.clone();
+            //     for returned in r_list{
+            //         println!("File name: {:?} Returned Value: {:?}",f_name,returned);
+            //         // if returned.1 == file_name{
+            //         //     final_vec.push(returned.0);
+            //         // }
+            //     }
+            // }
+
+
 
             
         }
