@@ -104,36 +104,38 @@ fn main() -> Result<(), StegError> {
             //increment for each file in directory
             for _entry in fs::read_dir(path).expect("Path not found!") {num_files = num_files + 1;}
 
-            //
+            //list of files
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut f_l = &file_list.clone();
-            let mut str_parts = vec![" "; 0];
+
+            //shadowing the number of files
             let mut num_files = 0;
+            //sorting for only ppm files
             for entry in fs::read_dir(path).expect("Path not found!") {
                 let entry = entry.expect("Valid entry not found!");
-
                 let path = entry.path();
                 if path.extension().unwrap() == "ppm" {
                     file_list.push(path);
-                    str_parts.push(" ");
                     num_files+=1;
                 }
             }
-            for value in &file_list {println!("PPM File: {:?}", value);}
-            println!("Length of str_parts: {}", str_parts.len());
+            for value in &file_list {println!("PPM File: {:?}", value);}//printing the ppm values
 
+            //index of 
             let index = Arc::new(Mutex::new(0));
             let data = Arc::new(Mutex::new(file_list));
-            if thread_count >= num_files {
-                thread_count = num_files;
-            }
+            if thread_count >= num_files {thread_count = num_files;}
+
             for i in 0..thread_count {
-                //let data = data.clone();
+                //cloning sending channel
                 let tx = sender.clone();
                 let index_copied = index.clone();
                 let str_test = data.clone();
 
+                //spawn a thread
                 let handle = thread::spawn(move || {
+
+                    
                     let str_list = str_test.lock().unwrap();
                     let mut index_unlocked = index_copied.lock().unwrap();
                     let index_value:usize = *index_unlocked;
@@ -169,14 +171,12 @@ fn main() -> Result<(), StegError> {
                         .expect("Error sending message!"); //decode return
                     *index_unlocked+=1;
                 });
-                //println!("Added thread {}", i+1);
+
                 handles.push(handle);
             }
 
-            //println!("Length of Handles(Number of threads): {}", handles.len());
-            for handle in 0..num_files {
-                returns.push(receiver.recv().unwrap());
-            }
+
+            for handle in 0..num_files {returns.push(receiver.recv().unwrap());}
 
             
             //f_l = file_list.clone();
