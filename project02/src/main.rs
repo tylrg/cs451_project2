@@ -24,6 +24,7 @@ pub enum StegError {
 }
 
 fn main() -> Result<(), StegError> {
+    println!("YEAH");
     let args: Vec<String> = env::args().collect();
     let mut thread_count;
 
@@ -92,7 +93,7 @@ fn main() -> Result<(), StegError> {
             let path = Path::new(&path_string);
             //println!("Input Path: {:?}", path);
             let current_dir = env::current_dir().expect("Current directory not found!");
-
+            println!("Current Directory {:?}", current_dir);
 
             //vector for storing threads and return values from channel, also mpsc channels
             let mut handles = vec![];
@@ -297,7 +298,6 @@ fn find_first(vector_value: Vec<(usize, String)>) -> usize {
     }
     return MAX;
 }
-
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
 
