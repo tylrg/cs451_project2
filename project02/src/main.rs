@@ -33,14 +33,15 @@ fn main() -> Result<(), StegError> {
     }
 
     //determine thread count
-    let mut thread_count = &args[1];
+    let thread_count = &args[1];
+    let thread_count = thread_count.parse::<usize>().unwrap();
     println!("THREAD COUNT: {}",thread_count);
 
     match args.len() {
         3 => {
             //thread count from argument and parsing
-            thread_count = &args[1];
-            let mut thread_count = thread_count.parse::<usize>().unwrap();
+            //thread_count = &args[1];
+            
 
             //path from second argument 
             let path_string = args[2].to_string();
@@ -85,7 +86,7 @@ fn main() -> Result<(), StegError> {
             //index of 
             let index = Arc::new(Mutex::new(0));
             let data = Arc::new(Mutex::new(file_list));
-            if thread_count >= num_files {thread_count = num_files;}
+            //if thread_count >= num_files {thread_count = num_files;}
 
             for i in 0..thread_count {
                 //cloning sending channel
@@ -187,6 +188,8 @@ fn main() -> Result<(), StegError> {
             let current_dir = env::current_dir().expect("Current directory not found!");
             println!("Current Directory {:?}", current_dir);
 
+            let mut handles = vec![];
+
             //let the message be the input from a file
             let message = match fs::read_to_string(&args[2]) {
                 Ok(s) => s,
@@ -196,7 +199,7 @@ fn main() -> Result<(), StegError> {
 
 
             let message = message.as_bytes();
-            println!("Message as bytes: {:?}",message);
+            //println!("Message as bytes: {:?}",message);
 
             //get path from input file
             let path_string = args[3].to_string();
@@ -211,10 +214,12 @@ fn main() -> Result<(), StegError> {
                 //print!("Found an entry\n");
                 let entry = entry.expect("Valid entry not found!");
                 let path = entry.path();
+                if path.extension().unwrap() != "ppm" {continue;}
                 let path = path.into_os_string().into_string().unwrap();
                 let path_str = path.clone();
 
                 file_list.push(path_str);
+                
                 let ppm = match libsteg::PPM::new(path) {
                     Ok(ppm) => ppm,
                     Err(err) => panic!("Error: {:?}", err),
@@ -230,21 +235,50 @@ fn main() -> Result<(), StegError> {
 
 
             let test = &message[0..];
-            println!("test {:?}",test);
+            //println!("test {:?}",test);
             
             let mut value: Vec<u8> = Vec::new();
             for element in test.iter() {
                 value.push(*element);
             }
             let finalal = String::from_utf8(value).unwrap();
-            println!("{}",finalal);
+            //println!("{}",finalal);
 
             //determine size of message/split it up into files
             //give each thread a vector of jobs
             //job has a number(Filename) and a payload (message)
-            //encode message to file
+            //encode message to file, while job is not empty,
+
+            // job;
+            // for loop in threadcount{
+            //     job =;
+            //     spawn thread
+            // }
+            //let mut Vec<Vec<(String, String)>> taco;
+            let mut index = 0;
+            let mut start_slice = 0;
+            let mut end_slice = 0;
+            while start_slice<message.len() {
+                let file_to_use;
+                let message_fragment;
 
 
+
+                index+=1;
+                if index == message.len(){index=0;}
+            }
+
+            for i in 0..thread_count{
+                let job = i;
+                let j = job.clone();
+                let handle = thread::spawn(move || {
+                    println!("Spawned a thread: {}",j);
+                });
+                handles.push(handle);
+            }
+            
+
+            for thread in handles{thread.join().unwrap();}
 
 
 
