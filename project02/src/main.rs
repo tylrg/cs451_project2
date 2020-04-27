@@ -24,7 +24,6 @@ pub enum StegError {
 }
 
 fn main() -> Result<(), StegError> {
-    println!("YEAH");
     let args: Vec<String> = env::args().collect();
     let mut thread_count;
 
@@ -35,55 +34,8 @@ fn main() -> Result<(), StegError> {
     }
 
     match args.len() {
-        2 => {
-            // thread_count = &args[1];
-            // let mut thread_count = thread_count.parse::<usize>().unwrap();
-            // let mut handles = vec![];
-            // let (sender, receiver ) = mpsc::channel();
-            // let mut values = vec![];
-            // let mut returns = vec![];
-            // let mut counter = 0;
-
-            // //directory size up
-            // for i in 0..30{
-            //     let none_val:usize = MAX;
-            //     values.push((none_val,String::from("File Number ")+&i.to_string()+" Decoded"));
-            //     counter+=1;
-            // }
-            // println!("Counter: {}",counter);
-            // println!("Values: {:?}",values);
-
-            // let data = Arc::new(Mutex::new(values));
-            // if thread_count >= counter {thread_count=counter;}
-            // for i in 0..thread_count {
-            //     let data = data.clone();
-            //     let tx = sender.clone();
-            //     let handle = thread::spawn(move || {
-            //         let mut data = data.lock().unwrap();
-            //         let x = thread::current().id();
-            //         let mut done_flag:bool = false;
-            //         let send_data = data.clone();
-            //          let modify_value = find_first(send_data);
-            //             println!("----------------------\n{:?}",x);
-            //             println!("Found an empty spot: {:?}",data[modify_value]);
-            //             data[modify_value].0 = modify_value;
-            //             println!("Modified value: {:?}",data[modify_value]);
-            //             let path_to_decode = data[modify_value].1.clone();
-            //             println!("DECODING PATH: {}\n-------------------------\n",path_to_decode);
-            //             tx.send((modify_value,"Thread Finished!"));//decode return
-            //     });
-            //     println!("Added thread {}",i);
-            //     handles.push(handle);
-            // }
-            // println!("Length of Handles(Number of threads): {}",handles.len());
-
-            // for handle in 0..counter{
-            //     returns.push(receiver.recv().unwrap());
-            // }
-            // for ret_val in returns{println!("Returned Value: {:?}",ret_val)};
-        }
         3 => {
-
+            println!("FOUND THREE ARGUMENTS");
             //thread count from argument and parsing
             thread_count = &args[1];
             let mut thread_count = thread_count.parse::<usize>().unwrap();
@@ -109,19 +61,25 @@ fn main() -> Result<(), StegError> {
             let mut file_list: Vec<PathBuf> = Vec::new();
             let mut f_l = &file_list.clone();
 
+            
+
             //shadowing the number of files
+
             let mut num_files = 0;
             //sorting for only ppm files
             for entry in fs::read_dir(path).expect("Path not found!") {
+                print!("Found an entry\n");
                 let entry = entry.expect("Valid entry not found!");
                 let path = entry.path();
-                if path.extension().unwrap() == "ppm" {
-                    file_list.push(path);
-                    num_files+=1;
-                }
+                // if path.extension().unwrap() == "ppm" {
+                //     file_list.push(path);
+                //     num_files+=1;
+                // }
+                file_list.push(path);
+                num_files+=1;
             }
             for value in &file_list {println!("PPM File: {:?}", value);}//printing the ppm values
-
+            println!("Got here");
             //index of 
             let index = Arc::new(Mutex::new(0));
             let data = Arc::new(Mutex::new(file_list));
@@ -227,6 +185,11 @@ fn main() -> Result<(), StegError> {
 
             eprintln!("Total bytes of message: {}", message.capacity());
 
+            let current_dir = env::current_dir().expect("Current directory not found!");
+            println!("Current Directory {:?}", current_dir);
+
+            let message = message.as_bytes();
+            println!("Message as bytes: {:?}",message);
             // let ppm = match libsteg::PPM::new(args[].to_string()) {
             //     Ok(ppm) => ppm,
             //     Err(err) => panic!("Error: {:?}", err),
