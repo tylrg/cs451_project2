@@ -1,7 +1,8 @@
 use std::env;
 use std::fs;
-//use std::io;
-//use std::io::prelude::*;
+use std::io;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
 //use std::rc::Rc;
@@ -27,22 +28,44 @@ fn main() -> Result<(), StegError> {
 
     //prepare arguments and check if proper amount are provided
     let args: Vec<String> = env::args().collect();
-    if args.len()!=3 && args.len()!=5 {
-        eprintln!("You need to give 2 or 4 arguments!");
-        return Ok(());
-    }
+    let thread_count = &args[1];
+    // if args.len()!=3 && args.len()!=5 {
+    //     eprintln!("You need to give 2 or 4 arguments!");
+    //     return Ok(());
+    // }else{
+    //     let thread_count = &args[1];
+    //     //let thread_count = thread_count.parse::<usize>().unwrap();
+    //     println!("THREAD COUNT: {}",thread_count);
+    // }
 
     //determine thread count
-    let thread_count = &args[1];
-    let thread_count = thread_count.parse::<usize>().unwrap();
-    println!("THREAD COUNT: {}",thread_count);
+    
 
     match args.len() {
+        4 => {
+            let message = args[1].clone();
+            let ppm_name = args[2].clone();
+            let output_name = args[3].clone();
+
+            
+            //writeout(message,ppm_name,output_name).unwrap();
+
+            let mut string_list: Vec<String> = Vec::new();
+            string_list.push(String::from("00001.ppm"));
+            string_list.push(String::from("00002.ppm"));
+            string_list.push(String::from("00003.ppm"));
+            string_list.push(String::from("00004.ppm"));
+
+            for i in 0..4{
+                writeout(message.clone(), ppm_name.clone(), string_list[i].clone()).unwrap();
+            }
+         
+        }
         3 => {
             //thread count from argument and parsing
             //thread_count = &args[1];
             
-
+            let thread_count = thread_count.parse::<usize>().unwrap();
             //path from second argument 
             let path_string = args[2].to_string();
             let path = Path::new(&path_string);
@@ -181,7 +204,7 @@ fn main() -> Result<(), StegError> {
             
         }
         5 => {
-
+            let thread_count = thread_count.parse::<usize>().unwrap();
             //cargo run <numThreads> <message file> <ppm directory> <output directory>
 
             //print out the current directory
@@ -190,7 +213,7 @@ fn main() -> Result<(), StegError> {
 
             let mut handles = vec![];
 
-            //let the message be the input from a file
+            //let the message be the input from a file //ARGS 2
             let message = match fs::read_to_string(&args[2]) {
                 Ok(s) => s,
                 Err(err) => return Err(StegError::BadEncode(err.to_string())),
@@ -202,16 +225,17 @@ fn main() -> Result<(), StegError> {
             //println!("Message as bytes: {:?}",message);
 
             //get path from input file
-            let path_string = args[3].to_string();
+            let path_string = args[3].to_string(); //ARGS 3 input directory
             let path = Path::new(&path_string);
             println!("Path provided {:?}",path);
 
             let mut total_size:usize = 0;
+            
 
             let mut file_list: Vec<String> = Vec::new();
 
             for entry in fs::read_dir(path).expect("Path not found!") {
-                //print!("Found an entry\n");
+
                 let entry = entry.expect("Valid entry not found!");
                 let path = entry.path();
                 if path.extension().unwrap() != "ppm" {continue;}
@@ -226,23 +250,22 @@ fn main() -> Result<(), StegError> {
                 };
                 total_size+=ppm.pixels.len();
                 print!(" Pixels: {}\n",ppm.pixels.len());
+
+                //comparison
+                
             }
             println!("Total Size: {} Available Size: {}",total_size,total_size/8);
             let total_size=total_size/8;
+
+
             if message.len() > total_size{return Ok(());}
             for e in file_list {println!("File: {}",e);}
 
 
+            let mut output_dir = String::from(&args[4]);
 
-            let test = &message[0..];
-            //println!("test {:?}",test);
+
             
-            let mut value: Vec<u8> = Vec::new();
-            for element in test.iter() {
-                value.push(*element);
-            }
-            let finalal = String::from_utf8(value).unwrap();
-            //println!("{}",finalal);
 
             //determine size of message/split it up into files
             //give each thread a vector of jobs
@@ -255,12 +278,23 @@ fn main() -> Result<(), StegError> {
             //     spawn thread
             // }
             //let mut Vec<Vec<(String, String)>> taco;
+
+            //slices are fifo
+
             let mut index = 0;
             let mut start_slice = 0;
             let mut end_slice = 0;
+            let mut file_list: Vec<PathBuf> = Vec::new();
             while start_slice<message.len() {
-                let file_to_use;
-                let message_fragment;
+                //let file_to_use;
+
+
+
+
+                let message_fragment = &message[start_slice..end_slice];
+                let mut str_builder: Vec<u8> = Vec::new();
+                for element in message_fragment.iter() {str_builder.push(*element);}
+                let assembled = String::from_utf8(str_builder).unwrap();
 
 
 
@@ -269,91 +303,25 @@ fn main() -> Result<(), StegError> {
             }
 
             for i in 0..thread_count{
+
                 let job = i;
                 let j = job.clone();
                 let handle = thread::spawn(move || {
                     println!("Spawned a thread: {}",j);
+                    for i in 0..3{
+
+                    }
                 });
                 handles.push(handle);
             }
-            
-
             for thread in handles{thread.join().unwrap();}
-
-
-
-
-            // let ppm = match libsteg::PPM::new(args[].to_string()) {
-            //     Ok(ppm) => ppm,
-            //     Err(err) => panic!("Error: {:?}", err),
-            // };
-
-            // match encode_message(&message, &ppm) {
-            //     Ok(bytes) => {
-            //         // we got some bytes
-            //         // need to write ppm header first
-            //         // TODO move this to library
-
-            //         // first write magic number
-            //         io::stdout()
-            //             .write(&ppm.header.magic_number)
-            //             .expect("FAILED TO WRITE MAGIC NUMBER TO STDOUT");
-            //         io::stdout()
-            //             .write(&"\n".as_bytes())
-            //             .expect("FAILED TO WRITE MAGIC NUMBER TO STDOUT");
-
-            //         // then the width
-            //         io::stdout()
-            //             .write(ppm.header.width.to_string().as_bytes())
-            //             .expect("FAILED TO WRITE WIDTH TO STDOUT");
-            //         io::stdout()
-            //             .write(&" ".as_bytes())
-            //             .expect("FAILED TO WRITE WIDTH TO STDOUT");
-
-            //         // then the height
-            //         io::stdout()
-            //             .write(ppm.header.height.to_string().as_bytes())
-            //             .expect("FAILED TO WRITE HEIGHT TO STDOUT");
-            //         io::stdout()
-            //             .write(&"\n".as_bytes())
-            //             .expect("FAILED TO WRITE HEIGHT TO STDOUT");
-
-            //         // then the color value
-            //         io::stdout()
-            //             .write(ppm.header.max_color_value.to_string().as_bytes())
-            //             .expect("FAILED TO WRITE MAX COLOR VALUE TO STDOUT");
-            //         io::stdout()
-            //             .write(&"\n".as_bytes())
-            //             .expect("FAILED TO WRITE MAX COLOR VALUE TO STDOUT");
-
-            //         // then the encoded byets
-            //         // io::stdout()
-            //         //     .write(&bytes)
-            //         //     .expect("FAILED TO WRITE ENCODED BYTES TO STDOUT");
-            //     }
-            //     Err(err) => match err {
-            //         StegError::BadEncode(s) => panic!(s),
-            //         _ => panic!("RECEIVED AN UNEXPECTED ERROR WHEN TRYING TO ENCODE MESSAGE"),
-            //     },
-            // }
         }
         _ => println!("You need to give 2 or 4 arguments!"),
     }
     Ok(())
 }
 
-fn find_first(vector_value: Vec<(usize, String)>) -> usize {
-    let mut counter: usize = 0;
-    while counter < vector_value.len() {
-        if vector_value[counter].0 == MAX {
-            println!("Index: {}", counter);
-            return counter;
-        } else {
-            counter += 1;
-        }
-    }
-    return MAX;
-}
+
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
 
@@ -462,4 +430,69 @@ fn decode_character(bytes: &[u8]) -> u8 {
 }
 fn lsb(byte: u8) -> bool {
     (0b0000_0001 & byte) == 1
+}
+
+fn writeout(message_file: String,ppm_name: String,output_file_name: String) -> std::io::Result<()> {
+    //let mut file = File::create(output_file_name)?;
+    let ppm = match libsteg::PPM::new(ppm_name) {
+                Ok(ppm) => ppm,
+                Err(err) => panic!("Error: {:?}", err),
+    };
+    let mut buffer = File::create(output_file_name).expect("Could not create file");
+    match encode_message(&message_file, &ppm) {
+                Ok(bytes) => {
+                    // we got some bytes
+                    // need to write ppm header first
+                    // TODO move this to library
+
+                    // first write magic number
+                     buffer
+                         .write(&ppm.header.magic_number)
+                         .expect("FAILED TO WRITE MAGIC NUMBER TO STDOUT");
+                    //println!("{}",&ppm.header.magic_number.to_string());
+                    //println!("P6");
+                     buffer
+                         .write(&"\n".as_bytes())
+                         .expect("FAILED TO WRITE MAGIC NUMBER TO STDOUT");
+                    //print!("{:?}",&"\n".as_bytes());
+                    // then the width
+                    buffer
+                         .write(ppm.header.width.to_string().as_bytes())
+                         .expect("FAILED TO WRITE WIDTH TO STDOUT");
+                    //print!("{}",ppm.header.width.to_string());
+                    buffer
+                        .write(&" ".as_bytes())
+                        .expect("FAILED TO WRITE WIDTH TO STDOUT");
+                    //print!(" ");
+                    // then the height
+                    buffer
+                        .write(ppm.header.height.to_string().as_bytes())
+                        .expect("FAILED TO WRITE HEIGHT TO STDOUT");
+                    //print!("{}",ppm.header.height.to_string());
+                    buffer
+                        .write(&"\n".as_bytes())
+                        .expect("FAILED TO WRITE HEIGHT TO STDOUT");
+                    //print!("\n");
+                    // then the color value
+                    buffer
+                        .write(ppm.header.max_color_value.to_string().as_bytes())
+                        .expect("FAILED TO WRITE MAX COLOR VALUE TO STDOUT");
+                    //println!("{}",ppm.header.max_color_value.to_string());
+                    buffer
+                        .write(&"\n".as_bytes())
+                        .expect("FAILED TO WRITE MAX COLOR VALUE TO STDOUT");
+                    //print!("{:?}",&"\n".as_bytes());
+
+                    // then the encoded byets
+                    buffer
+                        .write(&bytes)
+                        .expect("FAILED TO WRITE ENCODED BYTES TO STDOUT");
+                    
+                }
+                Err(err) => match err {
+                    StegError::BadEncode(s) => panic!(s),
+                    _ => panic!("RECEIVED AN UNEXPECTED ERROR WHEN TRYING TO ENCODE MESSAGE"),
+                },
+            }
+    Ok(())
 }
