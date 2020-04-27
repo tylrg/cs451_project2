@@ -9,7 +9,7 @@ use std::str;
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+//use std::time::Duration;
 
 // use this if depending on local crate
 use libsteg;
@@ -24,18 +24,20 @@ pub enum StegError {
 }
 
 fn main() -> Result<(), StegError> {
-    let args: Vec<String> = env::args().collect();
-    let mut thread_count;
 
-    if args.len() > 2 {thread_count = &args[1];} 
-    else {
+    //prepare arguments and check if proper amount are provided
+    let args: Vec<String> = env::args().collect();
+    if args.len()!=3 && args.len()!=5 {
         eprintln!("You need to give 2 or 4 arguments!");
         return Ok(());
     }
 
+    //determine thread count
+    let mut thread_count = &args[1];
+    println!("THREAD COUNT: {}",thread_count);
+
     match args.len() {
         3 => {
-            println!("FOUND THREE ARGUMENTS");
             //thread count from argument and parsing
             thread_count = &args[1];
             let mut thread_count = thread_count.parse::<usize>().unwrap();
@@ -178,18 +180,75 @@ fn main() -> Result<(), StegError> {
             
         }
         5 => {
+
+            //cargo run <numThreads> <message file> <ppm directory> <output directory>
+
+            //print out the current directory
+            let current_dir = env::current_dir().expect("Current directory not found!");
+            println!("Current Directory {:?}", current_dir);
+
+            //let the message be the input from a file
             let message = match fs::read_to_string(&args[2]) {
                 Ok(s) => s,
                 Err(err) => return Err(StegError::BadEncode(err.to_string())),
             };
+            println!("Total bytes of message: {}", message.capacity());
 
-            eprintln!("Total bytes of message: {}", message.capacity());
-
-            let current_dir = env::current_dir().expect("Current directory not found!");
-            println!("Current Directory {:?}", current_dir);
 
             let message = message.as_bytes();
             println!("Message as bytes: {:?}",message);
+
+            //get path from input file
+            let path_string = args[3].to_string();
+            let path = Path::new(&path_string);
+            println!("Path provided {:?}",path);
+
+            let mut total_size:usize = 0;
+
+            let mut file_list: Vec<String> = Vec::new();
+
+            for entry in fs::read_dir(path).expect("Path not found!") {
+                //print!("Found an entry\n");
+                let entry = entry.expect("Valid entry not found!");
+                let path = entry.path();
+                let path = path.into_os_string().into_string().unwrap();
+                let path_str = path.clone();
+
+                file_list.push(path_str);
+                let ppm = match libsteg::PPM::new(path) {
+                    Ok(ppm) => ppm,
+                    Err(err) => panic!("Error: {:?}", err),
+                };
+                total_size+=ppm.pixels.len();
+                print!(" Pixels: {}\n",ppm.pixels.len());
+            }
+            println!("Total Size: {} Available Size: {}",total_size,total_size/8);
+            let total_size=total_size/8;
+            if message.len() > total_size{return Ok(());}
+            for e in file_list {println!("File: {}",e);}
+
+
+
+            let test = &message[0..];
+            println!("test {:?}",test);
+            
+            let mut value: Vec<u8> = Vec::new();
+            for element in test.iter() {
+                value.push(*element);
+            }
+            let finalal = String::from_utf8(value).unwrap();
+            println!("{}",finalal);
+
+            //determine size of message/split it up into files
+            //give each thread a vector of jobs
+            //job has a number(Filename) and a payload (message)
+            //encode message to file
+
+
+
+
+
+
             // let ppm = match libsteg::PPM::new(args[].to_string()) {
             //     Ok(ppm) => ppm,
             //     Err(err) => panic!("Error: {:?}", err),
