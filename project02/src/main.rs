@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::io;
+//use std::io;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -42,29 +42,6 @@ fn main() -> Result<(), StegError> {
     
 
     match args.len() {
-        4 => {
-            let message = fs::read_to_string(args[1].clone()).unwrap();
-            let ppm_name = args[2].clone();
-            let output_name = args[3].clone();
-            
-            
-            let index= 203;
-            let swag = pad_zeros_for_file(index);
-            println!("Padded : {}",swag);
-            
-            writeout(message,ppm_name,output_name).unwrap();
-
-            // let mut string_list: Vec<String> = Vec::new();
-            // string_list.push(String::from("00001.ppm"));
-            // string_list.push(String::from("00002.ppm"));
-            // string_list.push(String::from("00003.ppm"));
-            // string_list.push(String::from("00004.ppm"));
-
-            // for i in 0..4{
-            //     writeout(message.clone(), ppm_name.clone(), string_list[i].clone()).unwrap();
-            // }
-         
-        }
         3 => {
             //thread count from argument and parsing
             //thread_count = &args[1];
@@ -89,7 +66,7 @@ fn main() -> Result<(), StegError> {
 
             //list of files
             let mut file_list: Vec<PathBuf> = Vec::new();
-            let mut f_l = &file_list.clone();
+            let  f_l = &file_list.clone();
 
             
 
@@ -115,7 +92,7 @@ fn main() -> Result<(), StegError> {
             let data = Arc::new(Mutex::new(file_list));
             //if thread_count >= num_files {thread_count = num_files;}
 
-            for i in 0..thread_count {
+            for _i in 0..thread_count {
                 //cloning sending channel
                 let tx = sender.clone();
                 let index_copied = index.clone();
@@ -152,7 +129,7 @@ fn main() -> Result<(), StegError> {
                     //decode
                     match decode_message(v) {
                         Ok(message) => println!("{}", message),
-                        Err(err) => panic!("UNKNOWN ERROR DECODING!"),
+                        Err(_err) => panic!("UNKNOWN ERROR DECODING!"),
                     }
 
                     let x = thread::current().id();
@@ -165,7 +142,7 @@ fn main() -> Result<(), StegError> {
             }
 
 
-            for handle in 0..num_files {returns.push(receiver.recv().unwrap());}
+            for _handle in 0..num_files {returns.push(receiver.recv().unwrap());}
 
             
             //f_l = file_list.clone();
@@ -174,7 +151,7 @@ fn main() -> Result<(), StegError> {
                 for f_name in f_l{
                     let f_name = f_name.clone().into_os_string();
                     let f_name = f_name.into_string().unwrap();
-                    let r_val_str = &ret_val.1;
+                    //let r_val_str = &ret_val.1;
 
                     println!("Fname: {}",f_name);
                     if ret_val.1 == *f_name{
@@ -212,26 +189,33 @@ fn main() -> Result<(), StegError> {
             //cargo run <numThreads> <message file> <ppm directory> <output directory>
 
             //print out the current directory
-            let current_dir = env::current_dir().expect("Current directory not found!");
-            println!("Current Directory {:?}", current_dir);
+            //let current_dir = env::current_dir().expect("Current directory not found!");
+            //println!("Current Directory {:?}", current_dir);
 
             let mut handles = vec![];
 
             //let the message be the input from a file //ARGS 2
-            let message = match fs::read_to_string(&args[2]) {
+            let mut message = match fs::read_to_string(&args[2]) {
                 Ok(s) => s,
                 Err(err) => return Err(StegError::BadEncode(err.to_string())),
             };
-            println!("Total bytes of message: {}", message.capacity());
+            //println!("Total bytes of message: {}", message.capacity());
 
+            let end = vec![0];
+            let end = str::from_utf8(&end).unwrap();
+            let end:String = String::from(end);
+            let end =  end.chars();
+            //println!("{}",end.clone().next().unwrap());
+            message.push(end.clone().next().unwrap());
 
             let message = message.as_bytes();
+            
             //println!("Message as bytes: {:?}",message);
 
             //get path from input file
             let path_string = args[3].to_string(); //ARGS 3 input directory
             let path = Path::new(&path_string);
-            println!("Path provided {:?}",path);
+            //println!("Path provided {:?}",path);
 
             let mut total_size:usize = 0;
             
@@ -255,12 +239,12 @@ fn main() -> Result<(), StegError> {
                     Err(err) => panic!("Error: {:?}", err),
                 };
                 total_size+=ppm.pixels.len();
-                print!(" Pixels: {}\n",ppm.pixels.len());
+                //print!(" Pixels: {}\n",ppm.pixels.len());
 
                 //comparison
                 
             }
-            println!("Total Size: {} Available Size: {}",total_size,total_size/8);
+            //println!("Total Size: {} Available Size: {}",total_size,total_size/8);
             let total_size=total_size/8;
             
 
@@ -275,14 +259,7 @@ fn main() -> Result<(), StegError> {
             let file_size = pixel_size(largest_file.clone());
             let output_dir = String::from(&args[4]);
 
-            
-            
-
-            //determine size of message/split it up into files
-            //give each thread a vector of jobs
-            //job has a number(Filename) and a payload (message)
-            //encode message to file, while job is not empty,
-
+        
             // job;
             // for loop in threadcount{
             //     job =;
@@ -290,7 +267,7 @@ fn main() -> Result<(), StegError> {
             // }
             //let mut Vec<Vec<(String, String)>> taco;
 
-            //slices are fifo
+            
             
             let mut index = 0;
             //let message_parts_count = total_size/thread_count;
@@ -314,7 +291,7 @@ fn main() -> Result<(), StegError> {
                 //start_slice = start_slice/8;
                 //end_slice= end_slice/8;
                 
-                println!("Start of slice: {} and end of slice: {}",start_slice,end_slice);
+                //println!("Start of slice: {} and end of slice: {}",start_slice,end_slice);
 
 
 
@@ -335,22 +312,23 @@ fn main() -> Result<(), StegError> {
                 start_slice=end_slice;
             }
 
-            println!("Jobs: {}", jobs.len());
-            // for job in jobs{
-            //     println!("{:?}",job);
+            //println!("Jobs: {}", jobs.len());
+            // for job in jobs.clone(){
+            //     //println!("{:?}",job.1);
             // }      
             
             
             let mut start = 0;
-            let last_index = 0;
+            //let last_index = 0;
             for i in 0..thread_count{
                            
                 //let pair = (1, true);
-                let job = i;
-                let j = job.clone();
+                //let job = i;
+                
                 let mut job_list: Vec<(String,String)> = Vec::new();
 
                 let mut last_index = (thread_count*i)+thread_count+1;
+                last_index = last_index *8;
 
                 if last_index > jobs.len()-1{
                     last_index=jobs.len()-1;
@@ -363,7 +341,7 @@ fn main() -> Result<(), StegError> {
 
                 
                 
-                for k in start..last_index{
+                for k in start..last_index+1{
                     job_list.push(jobs[k].clone());
                 }
 
@@ -372,9 +350,10 @@ fn main() -> Result<(), StegError> {
 
                 let out = largest_file.clone();
                 let handle = thread::spawn(move || {
-                    println!("Spawned thread: #{}",j);
+                    //println!("Spawned thread: #{} Number of Jobs: {}",j,job_list.len());
                     while job_list.len() !=0 {
                         println!("Thread #{} :Writing a file {:?} Length of message: {}",i,job_list[job_list.len()-1].1,job_list[job_list.len()-1].0.len()-1);
+                        
                         writeout(job_list[job_list.len()-1].0.clone(),out.clone(),job_list[job_list.len()-1].1.clone()).expect("What went wrong?");    
 
                         job_list.pop();                    
@@ -394,7 +373,7 @@ fn main() -> Result<(), StegError> {
 
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
-    println!("GOT INTO ENDCODE! Message len");
+    //println!("GOT INTO ENDCODE! Message len");
     // loop through each character in the message
     // for each character, pull 8 bytes out of the file
     // encode those 8 bytes to hide the character in the message
