@@ -255,7 +255,7 @@ fn main() -> Result<(), StegError> {
                     Err(err) => panic!("Error: {:?}", err),
                 };
                 total_size+=ppm.pixels.len();
-                //print!(" Pixels: {}\n",ppm.pixels.len());
+                print!(" Pixels: {}\n",ppm.pixels.len());
 
                 //comparison
                 
@@ -265,7 +265,7 @@ fn main() -> Result<(), StegError> {
             
 
 
-            //if message.len() > total_size{return Ok(());}
+            if message.len() > total_size{return Ok(());}
             //for e in file_list.clone() {println!("File: {}",e);}
 
             
@@ -288,7 +288,7 @@ fn main() -> Result<(), StegError> {
             //     job =;
             //     spawn thread
             // }
-            
+            //let mut Vec<Vec<(String, String)>> taco;
 
             //slices are fifo
             
@@ -302,15 +302,17 @@ fn main() -> Result<(), StegError> {
             //message //filename
 
 
-                
-            //breaking message into chunks
+            
             while start_slice<message.len() {
                 //let file_to_use;
 
+
                 let min = message.len();
-                end_slice += file_size+1;
+                end_slice = end_slice+file_size/8;
                 if end_slice>min {end_slice=min;}
-                end_slice = end_slice/8;
+
+                //start_slice = start_slice/8;
+                //end_slice= end_slice/8;
                 
                 println!("Start of slice: {} and end of slice: {}",start_slice,end_slice);
 
@@ -327,10 +329,10 @@ fn main() -> Result<(), StegError> {
                 let job_value = (assembled,write_name);
                 jobs.push(job_value);
                 index+=1;
-                if index == message.len(){index=0;}
+                //if index == message.len(){index=0;}
 
-
-                start_slice+=file_size/8+1;
+                
+                start_slice=end_slice;
             }
 
             println!("Jobs: {}", jobs.len());
@@ -349,7 +351,7 @@ fn main() -> Result<(), StegError> {
                 let mut job_list: Vec<(String,String)> = Vec::new();
 
                 let mut last_index = (thread_count*i)+thread_count+1;
-                //println!("#{}: Last Index {} Length {}",i,last_index,jobs.len());
+
                 if last_index > jobs.len()-1{
                     last_index=jobs.len()-1;
                 }
@@ -371,22 +373,10 @@ fn main() -> Result<(), StegError> {
                 let out = largest_file.clone();
                 let handle = thread::spawn(move || {
                     println!("Spawned thread: #{}",j);
-                    //let mut current = job_list.len()-1;
-                    //let out = largest_file.clone();
                     while job_list.len() !=0 {
                         println!("Thread #{} :Writing a file {:?} Length of message: {}",i,job_list[job_list.len()-1].1,job_list[job_list.len()-1].0.len()-1);
-                       
-
-                        // let ppm = match libsteg::PPM::new(out.clone()) {
-                        //     Ok(ppm) => ppm,
-                        //     Err(err) => panic!("Error: {:?}", err),
-                        // };
-                        // let output_bytes = encode_message(&job_list[job_list.len()-1].0.as_str(),&ppm);
-
                         writeout(job_list[job_list.len()-1].0.clone(),out.clone(),job_list[job_list.len()-1].1.clone()).expect("What went wrong?");    
-                        // let mut buffer = File::create(job_list[job_list.len()-1].1.clone()).expect("Could not create file");
-                        // let yeah = "yeah";
-                        // buffer.write(yeah.as_bytes()).unwrap();
+
                         job_list.pop();                    
                     }
                 });
@@ -404,7 +394,7 @@ fn main() -> Result<(), StegError> {
 
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
-    println!("GOT INTO ENDCODE! Message length {}",message.len());
+    println!("GOT INTO ENDCODE! Message len");
     // loop through each character in the message
     // for each character, pull 8 bytes out of the file
     // encode those 8 bytes to hide the character in the message
@@ -413,7 +403,7 @@ fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegErro
     // output the remainder of the original file
 
     let mut start_index = 0;
-    //println!("Message chars {:?}",message.chars().len());
+    //println!("Message chars {:?}",message.chars());
     for c in message.chars() {
         encoded.extend(&encode_character(
             c,
@@ -521,14 +511,11 @@ fn writeout(message_file: String,ppm_name: String,output_file_name: String) -> s
                 Ok(ppm) => ppm,
                 Err(err) => panic!("Error: {:?}", err),
     };
-    println!("MESSAGE LENGTH IN WRITEOUT {}",message_file.len());
-    //println!("ABOUT TO ENCODE {}",output_file_name.clone().as_str());
+
     let mut buffer = File::create(output_file_name).expect("Could not create file");
    
     match encode_message(&message_file, &ppm) {
                 Ok(bytes) => {
-                    println!("SUCCESS!");
-
                     // first write magic number
                      buffer
                          .write(&ppm.header.magic_number)
