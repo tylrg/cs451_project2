@@ -43,22 +43,26 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         4 => {
-            let message = args[1].clone();
+            let message = fs::read_to_string(args[1].clone()).unwrap();
             let ppm_name = args[2].clone();
             let output_name = args[3].clone();
-
             
-            //writeout(message,ppm_name,output_name).unwrap();
+            
+            let index= 203;
+            let swag = pad_zeros_for_file(index);
+            println!("Padded : {}",swag);
+            
+            writeout(message,ppm_name,output_name).unwrap();
 
-            let mut string_list: Vec<String> = Vec::new();
-            string_list.push(String::from("00001.ppm"));
-            string_list.push(String::from("00002.ppm"));
-            string_list.push(String::from("00003.ppm"));
-            string_list.push(String::from("00004.ppm"));
+            // let mut string_list: Vec<String> = Vec::new();
+            // string_list.push(String::from("00001.ppm"));
+            // string_list.push(String::from("00002.ppm"));
+            // string_list.push(String::from("00003.ppm"));
+            // string_list.push(String::from("00004.ppm"));
 
-            for i in 0..4{
-                writeout(message.clone(), ppm_name.clone(), string_list[i].clone()).unwrap();
-            }
+            // for i in 0..4{
+            //     writeout(message.clone(), ppm_name.clone(), string_list[i].clone()).unwrap();
+            // }
          
         }
         3 => {
@@ -231,13 +235,15 @@ fn main() -> Result<(), StegError> {
 
             let mut total_size:usize = 0;
             
+            
 
             let mut file_list: Vec<String> = Vec::new();
 
             for entry in fs::read_dir(path).expect("Path not found!") {
-
+                //println!("Found an entry {:?}",entry);
                 let entry = entry.expect("Valid entry not found!");
                 let path = entry.path();
+                
                 if path.extension().unwrap() != "ppm" {continue;}
                 let path = path.into_os_string().into_string().unwrap();
                 let path_str = path.clone();
@@ -249,22 +255,27 @@ fn main() -> Result<(), StegError> {
                     Err(err) => panic!("Error: {:?}", err),
                 };
                 total_size+=ppm.pixels.len();
-                print!(" Pixels: {}\n",ppm.pixels.len());
+                //print!(" Pixels: {}\n",ppm.pixels.len());
 
                 //comparison
                 
             }
             println!("Total Size: {} Available Size: {}",total_size,total_size/8);
             let total_size=total_size/8;
+            
 
 
-            if message.len() > total_size{return Ok(());}
-            for e in file_list {println!("File: {}",e);}
+            //if message.len() > total_size{return Ok(());}
+            //for e in file_list.clone() {println!("File: {}",e);}
 
+            
+            //let largest_file = get_biggest(&file_list);
+            let largest_file = file_list[0].clone();
+            //println!("Largest File {}",largest_file.clone());
+            let file_size = pixel_size(largest_file.clone());
+            let output_dir = String::from(&args[4]);
 
-            let mut output_dir = String::from(&args[4]);
-
-
+            
             
 
             //determine size of message/split it up into files
@@ -277,17 +288,31 @@ fn main() -> Result<(), StegError> {
             //     job =;
             //     spawn thread
             // }
-            //let mut Vec<Vec<(String, String)>> taco;
+            
 
             //slices are fifo
-
+            
             let mut index = 0;
+            //let message_parts_count = total_size/thread_count;
             let mut start_slice = 0;
             let mut end_slice = 0;
-            let mut file_list: Vec<PathBuf> = Vec::new();
+            
+            
+            let mut jobs: Vec<(String,String)> = Vec::new();
+            //message //filename
+
+
+                
+            //breaking message into chunks
             while start_slice<message.len() {
                 //let file_to_use;
 
+                let min = message.len();
+                end_slice += file_size+1;
+                if end_slice>min {end_slice=min;}
+                end_slice = end_slice/8;
+                
+                println!("Start of slice: {} and end of slice: {}",start_slice,end_slice);
 
 
 
@@ -295,24 +320,79 @@ fn main() -> Result<(), StegError> {
                 let mut str_builder: Vec<u8> = Vec::new();
                 for element in message_fragment.iter() {str_builder.push(*element);}
                 let assembled = String::from_utf8(str_builder).unwrap();
+                //println!("Adding : {}",assembled);
 
-
-
+                let write_name = pad_zeros_for_file(index);
+                let write_name=format!("{}/{}",output_dir,write_name);
+                let job_value = (assembled,write_name);
+                jobs.push(job_value);
                 index+=1;
                 if index == message.len(){index=0;}
+
+
+                start_slice+=file_size/8+1;
             }
 
+            println!("Jobs: {}", jobs.len());
+            // for job in jobs{
+            //     println!("{:?}",job);
+            // }      
+            
+            
+            let mut start = 0;
+            let last_index = 0;
             for i in 0..thread_count{
-
+                           
+                //let pair = (1, true);
                 let job = i;
                 let j = job.clone();
-                let handle = thread::spawn(move || {
-                    println!("Spawned a thread: {}",j);
-                    for i in 0..3{
+                let mut job_list: Vec<(String,String)> = Vec::new();
 
+                let mut last_index = (thread_count*i)+thread_count+1;
+                //println!("#{}: Last Index {} Length {}",i,last_index,jobs.len());
+                if last_index > jobs.len()-1{
+                    last_index=jobs.len()-1;
+                }
+                
+                if i != 0{
+                    start = thread_count*(i);
+                    start+=1;
+                }
+
+                
+                
+                for k in start..last_index{
+                    job_list.push(jobs[k].clone());
+                }
+
+                //println!("LOOP {} Start: {} End: {}",i+1,start,last_index);
+
+
+                let out = largest_file.clone();
+                let handle = thread::spawn(move || {
+                    println!("Spawned thread: #{}",j);
+                    //let mut current = job_list.len()-1;
+                    //let out = largest_file.clone();
+                    while job_list.len() !=0 {
+                        println!("Thread #{} :Writing a file {:?} Length of message: {}",i,job_list[job_list.len()-1].1,job_list[job_list.len()-1].0.len()-1);
+                       
+
+                        // let ppm = match libsteg::PPM::new(out.clone()) {
+                        //     Ok(ppm) => ppm,
+                        //     Err(err) => panic!("Error: {:?}", err),
+                        // };
+                        // let output_bytes = encode_message(&job_list[job_list.len()-1].0.as_str(),&ppm);
+
+                        writeout(job_list[job_list.len()-1].0.clone(),out.clone(),job_list[job_list.len()-1].1.clone()).expect("What went wrong?");    
+                        // let mut buffer = File::create(job_list[job_list.len()-1].1.clone()).expect("Could not create file");
+                        // let yeah = "yeah";
+                        // buffer.write(yeah.as_bytes()).unwrap();
+                        job_list.pop();                    
                     }
                 });
                 handles.push(handle);
+
+                start = last_index+1;
             }
             for thread in handles{thread.join().unwrap();}
         }
@@ -324,7 +404,7 @@ fn main() -> Result<(), StegError> {
 
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
-
+    println!("GOT INTO ENDCODE! Message length {}",message.len());
     // loop through each character in the message
     // for each character, pull 8 bytes out of the file
     // encode those 8 bytes to hide the character in the message
@@ -333,26 +413,28 @@ fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegErro
     // output the remainder of the original file
 
     let mut start_index = 0;
+    //println!("Message chars {:?}",message.chars().len());
     for c in message.chars() {
         encoded.extend(&encode_character(
             c,
             &ppm.pixels[start_index..start_index + 8],
         ));
         start_index += 8;
+        //println!("{}",start_index);
     }
-
+    
     // we need to add a null character to signify end of
     // message in this encoded image
-    encoded.extend(&encode_character(
-        '\0',
-        &ppm.pixels[start_index..start_index + 8],
-    ));
+    // encoded.extend(&encode_character(
+    //     '\0',
+    //     &ppm.pixels[start_index..start_index + 8],
+    // ));
 
-    start_index += 8;
+    // start_index += 8;
 
     // spit out remainder of ppm pixel data.
     encoded.extend(&ppm.pixels[start_index..]);
-
+    
     Ok(encoded)
 }
 fn encode_character(c: char, bytes: &[u8]) -> [u8; 8] {
@@ -434,16 +516,18 @@ fn lsb(byte: u8) -> bool {
 
 fn writeout(message_file: String,ppm_name: String,output_file_name: String) -> std::io::Result<()> {
     //let mut file = File::create(output_file_name)?;
+    
     let ppm = match libsteg::PPM::new(ppm_name) {
                 Ok(ppm) => ppm,
                 Err(err) => panic!("Error: {:?}", err),
     };
+    println!("MESSAGE LENGTH IN WRITEOUT {}",message_file.len());
+    //println!("ABOUT TO ENCODE {}",output_file_name.clone().as_str());
     let mut buffer = File::create(output_file_name).expect("Could not create file");
+   
     match encode_message(&message_file, &ppm) {
                 Ok(bytes) => {
-                    // we got some bytes
-                    // need to write ppm header first
-                    // TODO move this to library
+                    println!("SUCCESS!");
 
                     // first write magic number
                      buffer
@@ -495,4 +579,20 @@ fn writeout(message_file: String,ppm_name: String,output_file_name: String) -> s
                 },
             }
     Ok(())
+}
+
+fn pad_zeros_for_file(index: usize) -> String{
+    let mut ret_val:String = index.to_string();
+    while ret_val.len() != 5{
+        ret_val = format!("0{}",ret_val);
+    }
+    ret_val=format!("{}.ppm",ret_val);
+    return ret_val;
+}
+fn pixel_size(ppm_name: String)-> usize{
+    let ppm = match libsteg::PPM::new(ppm_name) {
+                Ok(ppm) => ppm,
+                Err(err) => panic!("Error: {:?}", err),
+    };
+    return ppm.pixels.len();
 }
