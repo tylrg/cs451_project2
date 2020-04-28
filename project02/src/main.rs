@@ -52,115 +52,175 @@ fn main() -> Result<(), StegError> {
             println!("Input Path: {:?}", path);
             let current_dir = env::current_dir().expect("Current directory not found!");
             println!("Current Directory {:?}", current_dir);
-            return Ok(());
+            
             //vector for storing threads and return values from channel, also mpsc channels
             let mut handles = vec![];
-            let mut returns = vec![];
+            
             let (sender, receiver) = mpsc::channel();
 
             //number of files
             let mut num_files = 0;
             //increment for each file in directory
-            for _entry in fs::read_dir(path).expect("Path not found!") {num_files = num_files + 1;}
+            //for _entry in fs::read_dir(path).expect("Path not found!") {num_files = num_files + 1;}
 
             //list of files
             let mut file_list: Vec<PathBuf> = Vec::new();
-            let  f_l = &file_list.clone();
-
             
+
+            //return Ok(());
 
             //shadowing the number of files
 
             let mut num_files = 0;
             //sorting for only ppm files
             for entry in fs::read_dir(path).expect("Path not found!") {
-                print!("Found an entry\n");
+                //print!("Found an entry\n");
                 let entry = entry.expect("Valid entry not found!");
                 let path = entry.path();
-                // if path.extension().unwrap() == "ppm" {
-                //     file_list.push(path);
-                //     num_files+=1;
-                // }
-                file_list.push(path);
-                num_files+=1;
-            }
-            for value in &file_list {println!("PPM File: {:?}", value);}//printing the ppm values
-            println!("Got here");
-            //index of 
-            let index = Arc::new(Mutex::new(0));
-            let data = Arc::new(Mutex::new(file_list));
-            //if thread_count >= num_files {thread_count = num_files;}
-
-            for _i in 0..thread_count {
-                //cloning sending channel
-                let tx = sender.clone();
-                let index_copied = index.clone();
-                let str_test = data.clone();
-
-                //spawn a thread
-                let handle = thread::spawn(move || {
-
-                    
-                    let str_list = str_test.lock().unwrap();
-                    let mut index_unlocked = index_copied.lock().unwrap();
-                    let index_value:usize = *index_unlocked;
-
-                    println!("Index {:?}",index_value);
-                    println!("Value at index: {:?}",str_list[*index_unlocked]);
-
-                    let file_path = str_list[*index_unlocked].clone().
-                    into_os_string();
-                    let file_path= file_path.into_string().unwrap();
-                    let send_path = file_path.clone();
-                    println!("File path as os String: {:?}",file_path);
-                    
-                    //create a file here and decode it
-                    let ppm = match libsteg::PPM::new(file_path) {
-                    Ok(ppm) => ppm,
-                    Err(err) => panic!("Error: {:?}", err),
-                    };
-                    //eprintln!("Height: {}", ppm.header.height);
-                    //eprintln!("Width: {}", ppm.header.width);
-                    //eprintln!("Pixel Length: {}", ppm.pixels.len());
-                    //eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
-                    let v = &ppm.pixels;
-
-                    //decode
-                    match decode_message(v) {
-                        Ok(message) => println!("{}", message),
-                        Err(_err) => panic!("UNKNOWN ERROR DECODING!"),
-                    }
-
-                    let x = thread::current().id();
-                    tx.send((x,send_path))
-                        .expect("Error sending message!"); //decode return
-                    *index_unlocked+=1;
-                });
-
-                handles.push(handle);
-            }
-
-
-            for _handle in 0..num_files {returns.push(receiver.recv().unwrap());}
-
-            
-            //f_l = file_list.clone();
-            
-            for ret_val in returns {
-                for f_name in f_l{
-                    let f_name = f_name.clone().into_os_string();
-                    let f_name = f_name.into_string().unwrap();
-                    //let r_val_str = &ret_val.1;
-
-                    println!("Fname: {}",f_name);
-                    if ret_val.1 == *f_name{
-                        //println!("Retval: {:?} File Name: {:?}",r_val_str,*f_name);
-                        println!("Found a match")
-                    }
-                    
+                if path.extension().unwrap() == "ppm" {
+                    file_list.push(path);
+                    num_files+=1;
                 }
-                println!("Returned Value:(thread,index) {:?}", ret_val)
+                //file_list.push(path);
+                
             }
+            //for value in &file_list {println!("PPM File: {:?}", value);}//printing the ppm values
+            println!("Number of files: {}",num_files);
+
+            let  f_l = &file_list.clone();
+
+            let mut start = 0;
+
+            for i in 0..thread_count{
+                let tx = sender.clone();
+
+                let mut job_list: Vec<(String)> = Vec::new();
+                let decimal_length: f64 = file_list.len() as f64;
+                let mut last_index = (decimal_length/thread_count as f64).ceil();
+                let mut last_index: usize = last_index as usize;
+                start =  last_index*i;
+                //println!("Last value: {}",last_index);
+                //println!("Start: {}/Last: {}",start,last_index);
+                //let mut last_index = (file_list.len()/thread_count)*(i+1);
+                // if last_index>file_list.len(){
+                //     last_index=file_list.len();
+                // }
+
+                let mut counter = start;
+                while job_list.len()<last_index{
+                    if counter == file_list.len(){break;}
+                    println!("Thread: {} has {}",i,counter);
+                    job_list.push(file_list[counter].clone().into_os_string().into_string().unwrap());
+                    counter+=1;
+                }
+
+
+
+                let handle = thread::spawn(move||{
+                    println!("Created thread: {} with {} jobs",i,job_list.len());
+                    
+                    while job_list.len()!=0{
+                        let ppm = match libsteg::PPM::new(job_list[job_list.len()-1].clone()) {
+                            Ok(ppm) => ppm,
+                            Err(err) => panic!("Error: {:?}", err),
+                         };
+                        let decoded = decode_message(&ppm.pixels);
+                        let payload = (job_list[job_list.len()-1].clone(),decoded);
+                        tx.send(payload).unwrap();
+                        job_list.pop();
+                    }
+                });
+                
+                handles.push(handle);
+
+                //start = last_index+1;
+            }
+            let mut returns = vec![];
+            for _handle in 0..num_files {returns.push(receiver.recv().unwrap());}
+            // for r in returns{
+            //     println!("Returned: {:?}",r);
+            // }
+            for thread in handles{thread.join().unwrap();}
+            println!("Returned items {}",returns.len());
+
+            let final_string: String = String::from("");
+
+            
+            //index of 
+            // let index = Arc::new(Mutex::new(0));
+            // let data = Arc::new(Mutex::new(file_list));
+            // //if thread_count >= num_files {thread_count = num_files;}
+
+            // for _i in 0..thread_count {
+            //     //cloning sending channel
+            //     let tx = sender.clone();
+            //     let index_copied = index.clone();
+            //     let str_test = data.clone();
+
+            //     //spawn a thread
+            //     let handle = thread::spawn(move || {
+
+                    
+            //         let str_list = str_test.lock().unwrap();
+            //         let mut index_unlocked = index_copied.lock().unwrap();
+            //         let index_value:usize = *index_unlocked;
+
+            //         println!("Index {:?}",index_value);
+            //         println!("Value at index: {:?}",str_list[*index_unlocked]);
+
+            //         let file_path = str_list[*index_unlocked].clone().
+            //         into_os_string();
+            //         let file_path= file_path.into_string().unwrap();
+            //         let send_path = file_path.clone();
+            //         println!("File path as os String: {:?}",file_path);
+                    
+            //         //create a file here and decode it
+            //         let ppm = match libsteg::PPM::new(file_path) {
+            //         Ok(ppm) => ppm,
+            //         Err(err) => panic!("Error: {:?}", err),
+            //         };
+            //         //eprintln!("Height: {}", ppm.header.height);
+            //         //eprintln!("Width: {}", ppm.header.width);
+            //         //eprintln!("Pixel Length: {}", ppm.pixels.len());
+            //         //eprintln!("Available Pixels: {}", ppm.pixels.len() / 8);
+            //         let v = &ppm.pixels;
+
+            //         //decode
+            //         match decode_message(v) {
+            //             Ok(message) => println!("{}", message),
+            //             Err(_err) => panic!("UNKNOWN ERROR DECODING!"),
+            //         }
+
+            //         let x = thread::current().id();
+            //         tx.send((x,send_path))
+            //             .expect("Error sending message!"); //decode return
+            //         *index_unlocked+=1;
+            //     });
+
+            //     handles.push(handle);
+            // }
+
+
+            // for _handle in 0..num_files {returns.push(receiver.recv().unwrap());}
+
+            
+            // //f_l = file_list.clone();
+            
+            // for ret_val in returns {
+            //     for f_name in f_l{
+            //         let f_name = f_name.clone().into_os_string();
+            //         let f_name = f_name.into_string().unwrap();
+            //         //let r_val_str = &ret_val.1;
+
+            //         println!("Fname: {}",f_name);
+            //         if ret_val.1 == *f_name{
+            //             //println!("Retval: {:?} File Name: {:?}",r_val_str,*f_name);
+            //             println!("Found a match")
+            //         }
+                    
+            //     }
+            //     println!("Returned Value:(thread,index) {:?}", ret_val)
+            // }
 
             // for ret_val in &returns{
             //     println!("Retval at 1: {:?}",ret_val.1);
@@ -177,11 +237,7 @@ fn main() -> Result<(), StegError> {
             //         //     final_vec.push(returned.0);
             //         // }
             //     }
-            // }
-
-
-
-            
+            // }            
         }
         5 => {
             let thread_count = thread_count.parse::<usize>().unwrap();
@@ -429,10 +485,13 @@ fn bit_at(c: u8, position: usize) -> u8 {
 fn decode_message(pixels: &Vec<u8>) -> Result<String, StegError> {
     let mut message = String::from("");
 
-    for bytes in pixels.chunks(8) {
+    for mut bytes in pixels.chunks(8) {
         // eprintln!("chunk!");
+        let base = [20,20,20,20,20,20,20,20];
         if bytes.len() < 8 {
-            panic!("There were less than 8 bytes in chunk");
+            //panic!("There were less than 8 bytes in chunk");
+            
+            bytes= &base[0..base.len()];
         }
 
         let character = decode_character(bytes);
