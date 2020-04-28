@@ -43,17 +43,16 @@ fn main() -> Result<(), StegError> {
 
     match args.len() {
         3 => {
-            //thread count from argument and parsing
-            //thread_count = &args[1];
+            
             
             let thread_count = thread_count.parse::<usize>().unwrap();
             //path from second argument 
-            let path_string = args[2].to_string();
+            let path_string = args[2].to_string();//to second directory
             let path = Path::new(&path_string);
-            //println!("Input Path: {:?}", path);
+            println!("Input Path: {:?}", path);
             let current_dir = env::current_dir().expect("Current directory not found!");
             println!("Current Directory {:?}", current_dir);
-
+            return Ok(());
             //vector for storing threads and return values from channel, also mpsc channels
             let mut handles = vec![];
             let mut returns = vec![];
