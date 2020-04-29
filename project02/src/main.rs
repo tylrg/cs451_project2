@@ -161,7 +161,6 @@ fn main() -> Result<(), StegError> {
     Ok(())
 }
 
-
 fn encode_message(message: &str, ppm: &libsteg::PPM) -> Result<Vec<u8>, StegError> {
     let mut encoded = vec![0u8; 0];
     // loop through each character in the message
